@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:isibappmoodle/views/ajouter_matiere_view';
-import 'package:isibappmoodle/views/matiere_par_classe_view';
+import 'package:isibappmoodle/views/ajouter_matiere_view.dart';
+import 'package:isibappmoodle/views/matiere_par_classe_view.dart';
 
 class HomeShareFile extends StatelessWidget {
   // Liste des classes
@@ -67,7 +67,8 @@ class HomeShareFile extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddSubjectForm(), // Navigue vers le formulaire
+                  builder: (context) =>
+                      AddSubjectForm(), // Navigue vers le formulaire
                 ),
               );
             },
@@ -86,7 +87,8 @@ class HomeShareFile extends StatelessWidget {
           itemBuilder: (context, index) {
             return GestureDetector(
               onTap: () {
-                if (classes[index] == "Master 1" || classes[index] == "Master 2") {
+                if (classes[index] == "Master 1" ||
+                    classes[index] == "Master 2") {
                   // Affiche le dialog pour choisir une filière
                   showFilieresDialog(context, classes[index]);
                 } else {
@@ -95,9 +97,7 @@ class HomeShareFile extends StatelessWidget {
                     context,
                     MaterialPageRoute(
                       builder: (context) => SubjectsPage(
-                        className: classes[index], 
-                        filiere: filieres[index]
-                      ),
+                          className: classes[index], filiere: filieres[index]),
                     ),
                   );
                 }

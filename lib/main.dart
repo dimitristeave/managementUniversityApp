@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:isibappmoodle/views/home_share_file_view'; // Assurez-vous que ce fichier contient la page HomeShareFile
+import 'package:isibappmoodle/views/home_share_file_view.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
 
 void main() {
   runApp(MyApp());

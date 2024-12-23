@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:isibappmoodle/config/config';
-import 'package:isibappmoodle/views/note_cours_par_matiere_view';
-
+import 'package:isibappmoodle/views/note_cours_par_matiere_view.dart';
 
 class SubjectsPage extends StatefulWidget {
   final String className;
@@ -27,9 +26,11 @@ class _SubjectsPageState extends State<SubjectsPage> {
   }
 
   Future<void> fetchSubjects() async {
-    final String apiUrl = "${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
+    final String apiUrl =
+        "${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
     try {
-      final response = await http.get(Uri.parse('$apiUrl?classe=${widget.className}&filiere=${widget.filiere}'));
+      final response = await http.get(Uri.parse(
+          '$apiUrl?classe=${widget.className}&filiere=${widget.filiere}'));
 
       if (response.statusCode == 200) {
         setState(() {
