@@ -13,6 +13,8 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const app = express();
+
+//Middleware
 app.use(bodyParser.json());
 
 // Route POST pour ajouter une matière
@@ -158,6 +160,11 @@ app.post("/uploadNote", upload.single("file"), async (req, res) => {
   }
 });
 
+
+const firebaseAuthController = require('./controllers/firebase-auth-controller');
+
+// Route pour enregistrer l'utilisateur 
+app.post('/signup', firebaseAuthController.signup);
 
 // Lancer le serveur
 const PORT = 3000;
