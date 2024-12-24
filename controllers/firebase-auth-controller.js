@@ -4,10 +4,10 @@ const db = admin.firestore();
 class FirebaseAuthController {
 
     signup = async (req, res) => {
-        const { email, password } = req.body;
+        const { email, password, section} = req.body;
     
-        if (!email || !password) {
-            return res.status(400).send({ error: "Email et mot de passe sont requis." });
+        if (!email || !password || !section) {
+            return res.status(400).send({ error: "Email et mot de passe ou section sont requis." });
         }
     
         // Vérification de la longueur minimale du mot de passe (6 caractères)
@@ -55,6 +55,7 @@ class FirebaseAuthController {
             await db.collection('users').doc(user.uid).set({
                 email: email,
                 role: role,
+                section : section,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
     
