@@ -1,7 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:isibappmoodle/views/auth_page.dart';
 import 'package:isibappmoodle/views/home_share_file_view.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(); // Initialisation de Firebase
   runApp(MyApp());
 }
 
@@ -17,7 +22,42 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue, // Couleur principale de l'application
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: HomeShareFile(), // Écran d'accueil de l'application
+      home:
+          AuthChecker(), // Vérifier l'état de la connexion avant de montrer une page
+      routes: {
+        '/auth': (context) => AuthPage(), // Route vers la page de connexion
+      },
+    );
+  }
+}
+
+class AuthChecker extends StatelessWidget {
+  const AuthChecker({super.key});
+
+  // Fonction pour vérifier si l'utilisateur est connecté
+  Future<User?> _getUser() async {
+    User? user =
+        FirebaseAuth.instance.currentUser; // Vérifie l'utilisateur actuel
+    return user; // Retourne l'utilisateur si connecté, sinon null
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<User?>(
+      future: _getUser(), // Vérifier si l'utilisateur est connecté
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(
+                child:
+                    CircularProgressIndicator()), // Afficher un chargement pendant la vérification
+          );
+        } else if (snapshot.hasData && snapshot.data != null) {
+          return HomeShareFile(); // Si connecté, rediriger vers la page HomeShareFile
+        } else {
+          return AuthPage(); // Si non connecté, rediriger vers la page de connexion
+        }
+      },
     );
   }
 }

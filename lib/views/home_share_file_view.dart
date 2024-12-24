@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:isibappmoodle/views/ajouter_matiere_view.dart';
 import 'package:isibappmoodle/views/matiere_par_classe_view.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Importer Firebase Auth pour la déconnexion
 
 class HomeShareFile extends StatelessWidget {
   // Liste des classes
@@ -54,6 +55,13 @@ class HomeShareFile extends StatelessWidget {
     );
   }
 
+  // Fonction de déconnexion
+  Future<void> _signOut(BuildContext context) async {
+    await FirebaseAuth.instance.signOut(); // Déconnexion Firebase
+    Navigator.pushReplacementNamed(
+        context, '/auth'); // Rediriger vers la page de connexion
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -74,6 +82,40 @@ class HomeShareFile extends StatelessWidget {
             },
           ),
         ],
+      ),
+      // Ajouter le Drawer (Menu latéral)
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text('Accueil'),
+              onTap: () {
+                Navigator.pop(context); // Ferme le menu
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.exit_to_app),
+              title: Text('Déconnexion'),
+              onTap: () {
+                _signOut(context); // Appeler la fonction de déconnexion
+              },
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
