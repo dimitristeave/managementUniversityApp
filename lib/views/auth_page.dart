@@ -16,6 +16,26 @@ class _AuthPageState extends State<AuthPage> {
   bool _isLogin =
       true; // Détermine si on est sur la page de connexion ou d'inscription
   String _message = "";
+  String? _selectedSection; // Section sélectionnée par l'utilisateur
+
+  // Liste des sections disponibles
+  final List<String> _sections = [
+    'BA1',
+    'BA2',
+    'BA3',
+    'MA1 Informatique',
+    'MA1 Electronique',
+    'MA1 Physique Nucléaire et Médicale',
+    'MA1 Chimie',
+    'MA1 Electromécanique',
+    'MA1 Aéronautique',
+    'MA2 Informatique',
+    'MA2 Electronique',
+    'MA2 Physique Nucléaire et Médicale',
+    'MA2 Chimie',
+    'MA2 Electromécanique',
+    'MA2 Aéronautique',
+  ];
 
   // Fonction pour se connecter
   Future<void> _signIn() async {
@@ -48,9 +68,10 @@ class _AuthPageState extends State<AuthPage> {
     final String password = _passwordController.text;
 
     // Vérification des champs
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty || _selectedSection == null) {
       setState(() {
-        _message = "L'email et le mot de passe sont requis.";
+        _message =
+            "L'email, le mot de passe et la section sont requis pour l'inscription.";
       });
       return;
     }
@@ -65,6 +86,7 @@ class _AuthPageState extends State<AuthPage> {
         body: json.encode({
           'email': email,
           'password': password,
+          'section': _selectedSection,
         }),
       );
 
@@ -79,8 +101,6 @@ class _AuthPageState extends State<AuthPage> {
         });
 
         // Sauvegarder le token ou utiliser pour l'authentification Firebase si nécessaire
-        // Exemple : utiliser ce token pour une authentification Firebase
-        // await FirebaseAuth.instance.signInWithCustomToken(idToken);
 
         // Rediriger vers la page d'accueil
         Navigator.pushReplacement(
@@ -126,6 +146,29 @@ class _AuthPageState extends State<AuthPage> {
               ),
               obscureText: true,
             ),
+            if (!_isLogin) ...[
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedSection,
+                decoration: const InputDecoration(
+                  labelText: 'Section',
+                  border: OutlineInputBorder(),
+                ),
+                items: _sections
+                    .map((section) => DropdownMenuItem<String>(
+                          value: section,
+                          child: Text(section),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedSection = value;
+                  });
+                },
+                menuMaxHeight:
+                    200, // Limite la hauteur de la liste déroulante à 200 pixels
+              ),
+            ],
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLogin ? _signIn : _signUp,

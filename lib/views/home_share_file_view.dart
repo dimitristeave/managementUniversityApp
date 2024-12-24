@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:isibappmoodle/reutilisable/app_drawer.dart';
 import 'package:isibappmoodle/views/ajouter_matiere_view.dart';
 import 'package:isibappmoodle/views/matiere_par_classe_view.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importer Firebase Auth pour la déconnexion
@@ -65,6 +66,7 @@ class HomeShareFile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: AppDrawer(),
       appBar: AppBar(
         title: Text('ShareFile - Accueil'),
         actions: [
@@ -82,40 +84,6 @@ class HomeShareFile extends StatelessWidget {
             },
           ),
         ],
-      ),
-      // Ajouter le Drawer (Menu latéral)
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Accueil'),
-              onTap: () {
-                Navigator.pop(context); // Ferme le menu
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.exit_to_app),
-              title: Text('Déconnexion'),
-              onTap: () {
-                _signOut(context); // Appeler la fonction de déconnexion
-              },
-            ),
-          ],
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

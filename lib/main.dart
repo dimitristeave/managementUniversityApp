@@ -2,7 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:isibappmoodle/views/auth_page.dart';
-import 'package:isibappmoodle/views/home_share_file_view.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
+import 'package:isibappmoodle/views/help_page.dart';
+import 'package:isibappmoodle/views/home_share_file_view.dart';
+import 'package:isibappmoodle/views/opportunity_page.dart';
+import 'package:isibappmoodle/views/project_management.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +28,11 @@ class MyApp extends StatelessWidget {
       home:
           AuthChecker(), // Vérifier l'état de la connexion avant de montrer une page
       routes: {
-        '/auth': (context) => AuthPage(), // Route vers la page de connexion
+        '/auth': (context) => AuthPage(),
+        '/home': (context) => HomeShareFile(),
+        '/opportunity': (context) => OpportunityPage(),
+        '/project_management': (context) => ProjectManagementPage(),
+        '/help': (context) => HelpPage(),
       },
     );
   }
