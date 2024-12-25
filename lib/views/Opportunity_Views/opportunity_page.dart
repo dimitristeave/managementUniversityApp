@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:isibappmoodle/models/work_model..dart';
 import 'package:isibappmoodle/reutilisable/app_drawer.dart';
-import 'package:isibappmoodle/views/work_detail_page.dart'; // Import de la page de détail du travail
-import 'package:isibappmoodle/views/add_opportunity_page.dart';
+import 'package:isibappmoodle/views/Opportunity_Views/work_detail_page.dart'; // Import de la page de détail du travail
+import 'package:isibappmoodle/views/Opportunity_Views/add_opportunity_page.dart';
 import 'package:url_launcher/url_launcher.dart'; // Import de la page d'ajout d'opportunité
 
 class OpportunityPage extends StatefulWidget {

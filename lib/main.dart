@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:isibappmoodle/views/auth_page.dart';
 import 'package:isibappmoodle/views/help_page.dart';
 import 'package:isibappmoodle/views/home_share_file_view.dart';
-import 'package:isibappmoodle/views/opportunity_page.dart';
+import 'package:isibappmoodle/views/Opportunity_Views/opportunity_page.dart';
 import 'package:isibappmoodle/views/project_management.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
 
 void main() async {
