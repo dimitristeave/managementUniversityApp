@@ -162,9 +162,15 @@ app.post("/uploadNote", upload.single("file"), async (req, res) => {
 
 
 const firebaseAuthController = require('./controllers/firebase-auth-controller');
+const opportunityController = require("./controllers/opportunity-controller")
 
 // Route pour enregistrer l'utilisateur 
 app.post('/signup', firebaseAuthController.signup);
+
+//Route pour les opportunités de travail
+app.post('/works', opportunityController.addWork);
+app.get('/works', opportunityController.getWorks);
+
 
 // Lancer le serveur
 const PORT = 3000;
