@@ -170,6 +170,14 @@ app.post('/signup', firebaseAuthController.signup);
 //Route pour les opportunités de travail
 app.post('/works', opportunityController.addWork);
 app.get('/works', opportunityController.getWorks);
+app.put('/works/:id', opportunityController.updateWorks);
+app.delete('/works/:id', opportunityController.deleteWorks);
+
+// Route pour ajouter ou mettre à jour les préférences
+app.post('/preferences', opportunityController.updatePreferences);
+
+// Route pour récupérer les préférences d'un utilisateur
+app.get('/preferences/:userId', opportunityController.getPreferences);
 
 
 // Lancer le serveur
