@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:isibappmoodle/models/work_model..dart';
+import 'package:isibappmoodle/models/work_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WorkDetailPage extends StatelessWidget {
@@ -25,43 +25,48 @@ class WorkDetailPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(work.company,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium // headline5 est encore valide
-                ),
-            SizedBox(height: 8),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24.0,
+                )),
+            SizedBox(height: 12),
             Text(
-              'Section: ${work.section}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge, // Remplacer bodyText1 par bodyLarge
+              'Section : ${work.section}',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Text(
-              'Adresse: ${work.address}',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge, // Remplacer bodyText1 par bodyLarge
+              'Type d\'annonce : ${work.type}',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Adresse : ${work.address}',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
             SizedBox(height: 16),
             Text(
-              'Description:',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium, // Remplacer bodyText2 par bodyMedium
+              'Description :',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
             SizedBox(height: 8),
             Text(
               work.description,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge, // Remplacer bodyText1 par bodyLarge
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => _launchURL(work.link),
-              child: Text('Voir l\'offre'),
-            ),
+            if (work.link
+                .isNotEmpty) // Afficher le bouton uniquement si le lien n'est pas vide
+              Center(
+                child: SizedBox(
+                  width: double.infinity, // Le bouton prendra toute la largeur
+                  child: ElevatedButton(
+                    onPressed: () => _launchURL(work.link),
+                    child: Text('Voir l\'offre'),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

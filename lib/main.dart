@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:isibappmoodle/notifications/works_notifications.dart';
 import 'package:isibappmoodle/views/auth_page.dart';
 import 'package:isibappmoodle/views/help_page.dart';
 import 'package:isibappmoodle/views/home_share_file_view.dart';
@@ -10,6 +11,11 @@ import 'package:isibappmoodle/views/project_management.dart'; // Assurez-vous qu
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(); // Initialisation de Firebase
+
+  // Initialisez Awesome Notifications
+  FirebaseAPI firebaseAPI = FirebaseAPI();
+  firebaseAPI.initializeAwesomeNotifications();
+  await firebaseAPI.initNotifications();
   runApp(MyApp());
 }
 

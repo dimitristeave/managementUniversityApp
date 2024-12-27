@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:isibappmoodle/reutilisable/app_drawer.dart';
 
 class AddOpportunityPage extends StatefulWidget {
   @override
@@ -15,8 +14,27 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
   String address = '';
   String description = '';
   String link = '';
+  String type = '';
   bool isSubmitting = false;
   String errorMessage = '';
+
+  final List<String> sectionsItems = [
+    'BA1',
+    'BA2',
+    'BA3',
+    'MA1 Informatique',
+    'MA1 Electronique',
+    'MA1 Physique Nucléaire et Médicale',
+    'MA1 Chimie',
+    'MA1 Electromécanique',
+    'MA1 Aéronautique',
+    'MA2 Informatique',
+    'MA2 Electronique',
+    'MA2 Physique Nucléaire et Médicale',
+    'MA2 Chimie',
+    'MA2 Electromécanique',
+    'MA2 Aéronautique',
+  ];
 
   // Fonction pour envoyer les données au backend
   Future<void> addWork() async {
@@ -29,6 +47,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'company': company,
+          'type': type,
           'section': section,
           'address': address,
           'description': description,
@@ -93,11 +112,38 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                   return null;
                 },
               ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Section'),
+              DropdownButtonFormField(
+                items: [
+                  DropdownMenuItem(value: 'Stage', child: Text("stage")),
+                  DropdownMenuItem(
+                      value: 'Offre d\'emploi', child: Text("Offre d'emploi"))
+                ],
+                decoration: InputDecoration(labelText: 'Type'),
                 onChanged: (value) {
                   setState(() {
-                    section = value;
+                    type = value!;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer un type';
+                  }
+                  return null;
+                },
+              ),
+              DropdownButtonFormField(
+                decoration: InputDecoration(labelText: 'Section'),
+                menuMaxHeight:
+                    300, // Limite la hauteur du menu déroulant à 200 pixels
+                items: sectionsItems
+                    .map((sec) => DropdownMenuItem(
+                          value: sec,
+                          child: Text(sec),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    section = value!;
                   });
                 },
                 validator: (value) {
@@ -108,7 +154,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Adresse'),
+                decoration: InputDecoration(labelText: 'Ville'),
                 onChanged: (value) {
                   setState(() {
                     address = value;
@@ -116,7 +162,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer l\'adresse';
+                    return 'Veuillez entrer la ville';
                   }
                   return null;
                 },
@@ -141,12 +187,6 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                   setState(() {
                     link = value;
                   });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer le lien';
-                  }
-                  return null;
                 },
               ),
               SizedBox(height: 16),
