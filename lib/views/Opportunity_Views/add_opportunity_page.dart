@@ -63,7 +63,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Opportunité ajoutée avec succès!')));
-        Navigator.pop(context); // Retour à la page précédente
+        Navigator.pop(context, true); // Retour à la page précédente
       } else {
         setState(() {
           isSubmitting = false;

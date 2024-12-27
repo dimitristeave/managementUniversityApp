@@ -41,10 +41,32 @@ class _OpportunityPageState extends State<OpportunityPage> {
     'MA2 Aéronautique',
   ];
 
+  List<String> userTopics = [];
+
+  Future<void> getPreference() async {
+    // Récupérer les préférences utilisateur depuis le backend
+    final userId = await getUserId();
+    final String apiUrl = "http://192.168.129.13:3000/preferences/$userId";
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        userTopics = List<String>.from(data['topics'] ?? []);
+      } else {
+        print(
+            "Erreur lors de la récupération des préférences : ${response.body}");
+      }
+    } catch (e) {
+      print("Erreur de connexion au backend : $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     fetchWorks();
+    getPreference();
   }
 
   Future<String> getUserId() async {
@@ -119,14 +141,37 @@ class _OpportunityPageState extends State<OpportunityPage> {
   final NotificationService _notificationService = NotificationService();
 
   void _showSectionSelectionDialog() async {
-    // Initialisation locale de la sélection
+    // Initialiser avec des valeurs par défaut (toutes décochées)
     Map<String, bool> selectedSections = {
-      for (var section in sectionsItems.skip(1)) section: false
+      for (var section in sectionsItems.skip(1)) section: false,
     };
 
-    print(selectedSections);
+    // Récupérer les préférences utilisateur depuis le backend
+    final userId = await getUserId();
+    final String apiUrl = "http://192.168.129.13:3000/preferences/$userId";
 
-    // Montre le popup
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<String> userTopics = List<String>.from(data['topics'] ?? []);
+        setState(() {
+          for (var topic in userTopics) {
+            if (selectedSections.containsKey(topic)) {
+              selectedSections[topic] =
+                  true; // Cocher les sections correspondantes
+            }
+          }
+        });
+      } else {
+        print(
+            "Erreur lors de la récupération des préférences : ${response.body}");
+      }
+    } catch (e) {
+      print("Erreur de connexion au backend : $e");
+    }
+
+    // Afficher la boîte de dialogue
     await showDialog(
       context: context,
       builder: (context) {
@@ -141,7 +186,6 @@ class _OpportunityPageState extends State<OpportunityPage> {
                       title: Text(section),
                       value: selectedSections[section],
                       onChanged: (bool? value) {
-                        // Utiliser le StateSetter du StatefulBuilder
                         setStateDialog(() {
                           selectedSections[section] = value ?? false;
                         });
@@ -188,8 +232,6 @@ class _OpportunityPageState extends State<OpportunityPage> {
       "topics": selectedTopics.toList(),
     });
 
-    print(body);
-
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -201,6 +243,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
         print("Préférences utilisateur sauvegardées avec succès.");
         // Abonnement aux topics choisis
         await _subscribeToSelectedTopics(selectedTopics);
+        getPreference();
       } else {
         throw Exception("Erreur lors de la sauvegarde des préférences.");
       }
@@ -209,14 +252,39 @@ class _OpportunityPageState extends State<OpportunityPage> {
     }
   }
 
-  Future<void> _subscribeToSelectedTopics(Iterable<String> topics) async {
-    for (String topic in topics) {
+  Future<void> _subscribeToSelectedTopics(
+      Iterable<String> selectedTopics) async {
+    // Préparer les listes pour les abonnements et désabonnements
+    final List<String> topicsToAdd = [];
+    final List<String> topicsToDelete = [];
+
+    print("Topics actuels : $userTopics");
+    print("Topics sélectionnés : $selectedTopics");
+
+    // Ajouter les topics à s'abonner (dans selectedTopics mais pas dans currentTopics)
+    for (String topic in selectedTopics) {
+      if (!userTopics.contains(topic)) {
+        topicsToAdd.add(topic);
+      }
+    }
+
+    // Ajouter les topics à désabonner (dans userTopics mais pas dans selectedTopics)
+    for (String topic in userTopics) {
+      if (!selectedTopics.contains(topic)) {
+        topicsToDelete.add(topic);
+      }
+    }
+
+    print("Topics à ajouter : $topicsToAdd");
+    print("Topics à supprimer : $topicsToDelete");
+
+    // Effectuer les abonnements
+    for (String topic in topicsToAdd) {
       await _notificationService.subscribeToSection(topic);
     }
 
-    // Désabonne des topics non sélectionnés
-    for (String topic
-        in sectionsItems.skip(1).where((item) => !topics.contains(item))) {
+    // Effectuer les désabonnements
+    for (String topic in topicsToDelete) {
       await _notificationService.unsubscribeFromSection(topic);
     }
   }
@@ -229,11 +297,14 @@ class _OpportunityPageState extends State<OpportunityPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final result = await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AddOpportunityPage()),
               );
+              if (result == true) {
+                fetchWorks(); // Recharge les données
+              }
             },
           ),
           IconButton(
