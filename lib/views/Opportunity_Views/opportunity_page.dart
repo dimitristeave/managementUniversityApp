@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:isibappmoodle/config/config';
 import 'package:isibappmoodle/models/work_model.dart'; // Assurez-vous que la classe Work est correctement importée
 import 'package:isibappmoodle/notifications/works_notifications.dart';
 import 'package:isibappmoodle/reutilisable/app_drawer.dart';
@@ -46,7 +47,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
   Future<void> getPreference() async {
     // Récupérer les préférences utilisateur depuis le backend
     final userId = await getUserId();
-    final String apiUrl = "http://192.168.129.13:3000/preferences/$userId";
+    final String apiUrl = "${Config.sander}/preferences/$userId";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -80,7 +81,8 @@ class _OpportunityPageState extends State<OpportunityPage> {
 
   // Fonction pour récupérer les opportunités depuis le serveur
   Future<void> fetchWorks() async {
-    final String apiUrl = "http://192.168.129.13:3000/works";
+    final String apiUrl = "${Config.sander}/works";
+    print(apiUrl);
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
@@ -98,6 +100,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
       }
     } catch (e) {
       setState(() {
+        print(e);
         errorMessage = 'Erreur de connexion au serveur.';
         isLoading = false;
       });
@@ -117,11 +120,18 @@ class _OpportunityPageState extends State<OpportunityPage> {
     });
   }
 
-  // Fonction pour supprimer une opportunité
+// Fonction pour supprimer une opportunité
   Future<void> _deleteWork(String workId) async {
-    final String apiUrl = "http://192.168.129.13:3000/works/$workId";
+    final String apiUrl = "${Config.sander}/works/$workId";
+    final userId = await getUserId(); // Obtient l'UID de l'utilisateur connecté
     try {
-      final response = await http.delete(Uri.parse(apiUrl));
+      final response = await http.delete(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Uid': userId, // Passe l'UID dans les headers
+        },
+      );
       if (response.statusCode == 200) {
         setState(() {
           works.removeWhere((work) => work.id == workId);
@@ -148,7 +158,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
 
     // Récupérer les préférences utilisateur depuis le backend
     final userId = await getUserId();
-    final String apiUrl = "http://192.168.129.13:3000/preferences/$userId";
+    final String apiUrl = "${Config.sander}/preferences/$userId";
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -224,7 +234,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
         .map((e) => e.key);
 
     // Appel backend pour sauvegarder
-    final String apiUrl = "http://192.168.129.13:3000/preferences";
+    final String apiUrl = "${Config.sander}/preferences";
     final userId = await getUserId();
 
     final body = json.encode({
@@ -296,17 +306,20 @@ class _OpportunityPageState extends State<OpportunityPage> {
         title: Text('Opportunités'),
         actions: [
           IconButton(
-            icon: Icon(Icons.add),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => AddOpportunityPage()),
-              );
-              if (result == true) {
-                fetchWorks(); // Recharge les données
-              }
-            },
-          ),
+              icon: Icon(Icons.add),
+              onPressed: () async {
+                final userId =
+                    await getUserId(); // Appel de la fonction pour obtenir l'UID
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AddOpportunityPage(uid: userId),
+                  ),
+                );
+                if (result == true) {
+                  fetchWorks(); // Recharge les données après l'ajout
+                }
+              }),
           IconButton(
             icon: Icon(Icons.notifications),
             onPressed: _showSectionSelectionDialog,
@@ -318,118 +331,154 @@ class _OpportunityPageState extends State<OpportunityPage> {
           ? Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty
               ? Center(child: Text(errorMessage))
-              : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 16),
-                      TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Rechercher par nom',
-                          prefixIcon: Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
+              : works.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Pas d\'opportunité pour le moment',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          contentPadding: EdgeInsets.symmetric(
-                              vertical: 10.0, horizontal: 16.0),
-                        ),
-                        onChanged: (value) {
-                          setState(() {
-                            searchQuery = value;
-                          });
-                          filterWorks();
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      DropdownButtonFormField(
-                        value: selectedSection,
-                        items: sectionsItems
-                            .map((section) => DropdownMenuItem(
-                                  value: section,
-                                  child: Text(section),
-                                ))
-                            .toList(),
-                        decoration: InputDecoration(
-                          labelText: 'Filtrer par section',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                              vertical: 8.0, horizontal: 16.0),
-                        ),
-                        isExpanded: true,
-                        onChanged: (value) {
-                          setState(() {
-                            selectedSection = value!;
-                          });
-                          filterWorks();
-                        },
-                        menuMaxHeight: 300,
-                      ),
-                      SizedBox(height: 16),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: filteredWorks.length,
-                          itemBuilder: (context, index) {
-                            final work = filteredWorks[index];
-                            return Card(
-                              elevation: 4,
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 8),
-                              child: ListTile(
-                                title: Text(
-                                  work.company,
-                                  style: TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () async {
+                              final userId =
+                                  await getUserId(); // Appel de la fonction pour obtenir l'UID
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      AddOpportunityPage(uid: userId),
                                 ),
-                                subtitle:
-                                    Text('${work.section} - ${work.address}'),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          WorkDetailPage(work: work),
+                              );
+                              if (result == true) {
+                                fetchWorks(); // Recharge les données après l'ajout
+                              }
+                            },
+                            child: Text('Ajouter une opportunité'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 16),
+                          TextField(
+                            decoration: InputDecoration(
+                              labelText: 'Rechercher par nom',
+                              prefixIcon: Icon(Icons.search),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 10.0, horizontal: 16.0),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                searchQuery = value;
+                              });
+                              filterWorks();
+                            },
+                          ),
+                          SizedBox(height: 16),
+                          DropdownButtonFormField(
+                            value: selectedSection,
+                            items: sectionsItems
+                                .map((section) => DropdownMenuItem(
+                                      value: section,
+                                      child: Text(section),
+                                    ))
+                                .toList(),
+                            decoration: InputDecoration(
+                              labelText: 'Filtrer par section',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 8.0, horizontal: 16.0),
+                            ),
+                            isExpanded: true,
+                            onChanged: (value) {
+                              setState(() {
+                                selectedSection = value!;
+                              });
+                              filterWorks();
+                            },
+                            menuMaxHeight: 300,
+                          ),
+                          SizedBox(height: 16),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: filteredWorks.length,
+                              itemBuilder: (context, index) {
+                                final work = filteredWorks[index];
+                                return Card(
+                                  elevation: 4,
+                                  margin: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 8),
+                                  child: ListTile(
+                                    title: Text(
+                                      work.company,
+                                      style: TextStyle(
+                                          color: Colors.black,
+                                          fontWeight: FontWeight.bold),
                                     ),
-                                  );
-                                },
-                                trailing: PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    if (value == 'Modifier') {
+                                    subtitle: Text(
+                                        '${work.section} - ${work.address}'),
+                                    onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) =>
-                                                EditOpportunityPage(
-                                                    work: work)),
-                                      ).then((value) {
-                                        if (value == true) {
-                                          fetchWorks(); // Recharge les données si la modification a réussi
+                                          builder: (context) =>
+                                              WorkDetailPage(work: work),
+                                        ),
+                                      );
+                                    },
+                                    trailing: PopupMenuButton<String>(
+                                      onSelected: (value) async {
+                                        final userId = await getUserId();
+                                        if (value == 'Modifier') {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    EditOpportunityPage(
+                                                      work: work,
+                                                      uid: userId,
+                                                    )),
+                                          ).then((value) {
+                                            if (value == true) {
+                                              fetchWorks(); // Recharge les données si la modification a réussi
+                                            }
+                                          });
+                                        } else if (value == 'Supprimer') {
+                                          _deleteWork(work.id);
                                         }
-                                      });
-                                    } else if (value == 'Supprimer') {
-                                      _deleteWork(work.id);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem(
-                                        value: 'Modifier',
-                                        child: Text('Modifier')),
-                                    PopupMenuItem(
-                                        value: 'Supprimer',
-                                        child: Text('Supprimer')),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                                      },
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                            value: 'Modifier',
+                                            child: Text('Modifier')),
+                                        PopupMenuItem(
+                                            value: 'Supprimer',
+                                            child: Text('Supprimer')),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
     );
   }
 }

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:isibappmoodle/config/config';
 import 'dart:convert';
 
 import 'package:isibappmoodle/models/work_model.dart';
 
 class EditOpportunityPage extends StatefulWidget {
   final Work work;
+  final String uid;
 
-  EditOpportunityPage({required this.work});
+  EditOpportunityPage({
+    required this.work,
+    required this.uid,
+  });
 
   @override
   _EditOpportunityPageState createState() => _EditOpportunityPageState();
@@ -47,12 +52,15 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
   }
 
   Future<void> updateWork() async {
-    final String apiUrl = "http://192.168.129.13:3000/works/${widget.work.id}";
+    final String apiUrl = "${Config.sander}/works/${widget.work.id}";
 
     try {
       final response = await http.put(
         Uri.parse(apiUrl),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Uid': widget.uid,
+        },
         body: json.encode({
           'company': company,
           'section': section,
@@ -150,12 +158,6 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
                 initialValue: link,
                 decoration: InputDecoration(labelText: 'Lien'),
                 onChanged: (value) => link = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Le champ Lien est requis';
-                  }
-                  return null;
-                },
               ),
               // Champ pour le type avec la sélection initiale
               DropdownButtonFormField(

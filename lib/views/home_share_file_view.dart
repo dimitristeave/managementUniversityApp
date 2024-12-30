@@ -56,13 +56,6 @@ class HomeShareFile extends StatelessWidget {
     );
   }
 
-  // Fonction de déconnexion
-  Future<void> _signOut(BuildContext context) async {
-    await FirebaseAuth.instance.signOut(); // Déconnexion Firebase
-    Navigator.pushReplacementNamed(
-        context, '/auth'); // Rediriger vers la page de connexion
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,8 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:isibappmoodle/config/config';
 
 class AddOpportunityPage extends StatefulWidget {
+  final String uid;
+
+  AddOpportunityPage({required this.uid});
+
   @override
   _AddOpportunityPageState createState() => _AddOpportunityPageState();
 }
@@ -38,14 +43,14 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
 
   // Fonction pour envoyer les données au backend
   Future<void> addWork() async {
-    final String apiUrl =
-        "http://192.168.129.13:3000/works"; // URL de ton backend
+    final String apiUrl = "${Config.sander}/works"; // URL de ton backend
 
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
+          'uid': widget.uid, // Ajoute le uid ici
           'company': company,
           'type': type,
           'section': section,

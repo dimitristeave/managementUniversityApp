@@ -7,6 +7,7 @@ class Work {
   final String description;
   final String link;
   final String id;
+  final String uid;
 
   Work({
     required this.type,
@@ -16,6 +17,7 @@ class Work {
     required this.description,
     required this.link,
     required this.id,
+    required this.uid,
   });
 
   // Factory constructor pour créer un objet Work à partir d'un JSON
@@ -28,6 +30,7 @@ class Work {
       description: json['description'],
       link: json['link'],
       id: json['id'],
+      uid: json['uid'],
     );
   }
 }
