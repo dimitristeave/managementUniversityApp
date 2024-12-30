@@ -4,17 +4,17 @@ const db = admin.firestore();
 class FirebaseAuthController {
 
     signup = async (req, res) => {
-        const { email, password, section} = req.body;
-    
-        if (!email || !password || !section) {
-            return res.status(400).send({ error: "Email et mot de passe ou section sont requis." });
+        const { email, password, classe, filiere} = req.body;
+
+        if (!email || !password || !classe || !filiere) {
+            return res.status(400).send({ error: "Email et mot de passe, classe, filiere sont requis." });
         }
-    
+
         // Vérification de la longueur minimale du mot de passe (6 caractères)
         if (password.length < 6) {
             return res.status(400).send({ error: "Le mot de passe doit comporter au moins 6 caractères." });
         }
-    
+
         try {
             // Vérifier si l'email existe déjà
             try {
@@ -27,20 +27,20 @@ class FirebaseAuthController {
                     return res.status(500).send({ error: "Erreur interne du serveur." });
                 }
             }
-    
+
             // Si l'email n'est pas trouvé, procéder à la création de l'utilisateur
             const userRecord = await admin.auth().createUser({
                 email: email,
                 password: password,
             });
-    
+
             const user = userRecord;  // userRecord contient l'objet utilisateur créé
-    
+
             // Vérifier que l'objet user est valide
             if (!user || !user.uid) {
                 return res.status(500).send({ error: "Erreur lors de la création de l'utilisateur." });
             }
-    
+
             // Déterminer le rôle en fonction de l'email
             let role = '';
             if (email.endsWith('@etu.he2b.be')) {
@@ -50,12 +50,13 @@ class FirebaseAuthController {
             } else {
                 return res.status(403).send({ error: 'Email non autorisé' });
             }
-    
+
             // Enregistrer l'utilisateur dans Firestore avec son rôle
             await db.collection('users').doc(user.uid).set({
                 email: email,
                 role: role,
-                section : section,
+                classe : classe,
+                filiere : filiere,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
     

@@ -3,6 +3,8 @@ const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 const multer = require("multer");
 const path = require("path");
+const fs = require('fs');
+const nodemailer = require('nodemailer');
 
 // Initialisation de Firebase Admin SDK
 const serviceAccount = require("./serviceAccountKey.json");
@@ -13,6 +15,15 @@ admin.initializeApp({
 const db = admin.firestore();
 
 const app = express();
+
+// Configuration du transporteur de mail
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'kenmotagn@gmail.com', // Remplacez par votre email
+    pass: 'drtc ucna smnz ggxg' // Utilisez un mot de passe d'application Gmail
+  }
+});
 
 //Middleware
 app.use(bodyParser.json());
@@ -51,7 +62,6 @@ app.get("/getSubjectsByClass", async (req, res) => {
     filiere = "Commun";
   }
 
-  console.log(filiere);
   if (!classe) {
     return res.status(400).send({ error: "Classe manquante dans la requête." });
   }
@@ -67,6 +77,7 @@ app.get("/getSubjectsByClass", async (req, res) => {
     }
 
     const subjects = snapshot.docs.map((doc) => doc.data());
+    console.log(subjects);
     res.status(200).send(subjects);
   } catch (error) {
     console.error("Erreur lors de la récupération des matières :", error);
@@ -159,6 +170,283 @@ app.post("/uploadNote", upload.single("file"), async (req, res) => {
     res.status(500).send({ error: "Erreur interne du serveur." });
   }
 });
+
+// Route GET pour télécharger une note
+app.get("/downloadNote/:id", async (req, res) => {
+  try {
+    console.log("Download request for ID:", req.params.id); // Log pour debug
+
+    const noteDoc = await db.collection("notes").doc(req.params.id).get();
+    if (!noteDoc.exists) {
+      console.log("Note not found in Firestore"); // Log pour debug
+      return res.status(404).send({ error: "Note non trouvée." });
+    }
+
+    const noteData = noteDoc.data();
+    console.log("Note data:", noteData); // Log pour debug
+
+    const filePath = noteData.filePath;
+    console.log("File path:", filePath); // Log pour debug
+
+    if (!fs.existsSync(filePath)) {
+      console.log("File does not exist at path:", filePath); // Log pour debug
+      return res.status(404).send({ error: "Fichier non trouvé." });
+    }
+
+    res.download(filePath, noteData.fileName);
+  } catch (error) {
+    console.error("Download error:", error); // Log détaillé de l'erreur
+    res.status(500).send({ error: "Erreur interne du serveur." });
+  }
+});
+
+// Route POST pour créer une demande d'assistance
+app.post("/assistance", async (req, res) => {
+  const {
+    matiere,
+    destinataireId,
+    destinataireEmail,
+    date,
+    heures,
+    lieu,
+    description,
+    demandeurId,
+    demandeurEmail,
+    demandeurClasse,
+    demandeurFiliere,
+    status // 'en attente', 'accepté', 'refusé'
+  } = req.body;
+
+  try {
+    const docRef = await db.collection("assistance").add({
+      matiere,
+      destinataireId,
+      destinataireEmail,
+      date,
+      heures,
+      lieu,
+      description,
+      demandeurId,
+      demandeurEmail,
+      demandeurClasse,
+      demandeurFiliere,
+      status: 'en attente',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.status(200).send({
+      message: "Demande envoyée avec succès.",
+      id: docRef.id
+    });
+  } catch (error) {
+    console.error("Erreur:", error);
+    res.status(500).send({ error: "Erreur interne du serveur." });
+  }
+});
+
+// Route pour récupérer la liste des utilisateurs
+// Dans la route GET /assistance/:userId
+app.get("/assistance/:userId", async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    // Récupérer les demandes
+    const snapshot = await db.collection("assistance")
+      .where("destinataireId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .get();
+    //console.log("0");
+    // Récupérer les demandes avec les infos des demandeurs
+    const demandes = await Promise.all(snapshot.docs.map(async doc => {
+      const demandeData = doc.data();
+      // Récupérer les infos du demandeur
+      const userDoc = await db.collection("users").doc(demandeData.demandeurId).get();
+      const userData = userDoc.data();
+
+      return {
+        id: doc.id,
+        ...demandeData,
+        demandeurClasse: userData?.classe || 'Non spécifié',
+        demandeurFiliere: userData?.filiere || 'Non spécifié',
+      };
+    }));
+    //console.log(demandes);
+    res.status(200).send(demandes);
+  } catch (error) {
+    console.log("0");
+    console.error("Erreur:", error);
+    res.status(500).send({ error: "Erreur interne du serveur." });
+  }
+});
+
+app.get("/user/:id", async (req, res) => {
+  try {
+    const userDoc = await db.collection("users").doc(req.params.id).get();
+    if (!userDoc.exists) {
+      return res.status(404).send({ error: "Utilisateur non trouvé" });
+    }
+
+    const userData = userDoc.data();
+    console.log(userData);
+    res.status(200).send({
+      email: userData.email,
+      classe: userData.classe,
+      filiere: userData.filiere
+    });
+  } catch (error) {
+    console.error("Erreur:", error);
+    res.status(500).send({ error: "Erreur interne du serveur" });
+  }
+});
+
+app.get("/users", async (req, res) => {
+  try {
+    const usersSnapshot = await db.collection("users").get();
+
+    // Initialiser les tableaux pour les deux types d'utilisateurs
+    const professors = [];
+    const students = [];
+
+    // Parcourir tous les utilisateurs et les séparer selon leur rôle
+    usersSnapshot.forEach(doc => {
+      const userData = {
+        uid: doc.id,
+        email: doc.data().email,
+        classe: doc.data().classe,
+        filiere: doc.data().filiere
+      };
+
+      if (doc.data().role === 'professor') {
+        professors.push(userData);
+      } else {
+        students.push(userData);
+      }
+    });
+
+    // Envoyer les deux tableaux dans la réponse
+    res.status(200).send({
+      professors,
+      students
+    });
+
+  } catch (error) {
+    console.error("Erreur lors de la récupération des utilisateurs:", error);
+    res.status(500).send({ error: "Erreur interne du serveur" });
+  }
+});
+
+// Récupérer mes demandes envoyées
+app.get("/assistance/mes-demandes/:userId", async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const snapshot = await db.collection("assistance")
+      .where("demandeurId", "==", userId)
+      .orderBy("createdAt", "desc")
+      .get();
+
+    const demandes = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.status(200).send(demandes);
+  } catch (error) {
+    console.error("Erreur:", error);
+    res.status(500).send({ error: "Erreur interne du serveur." });
+  }
+});
+
+// Mettre à jour le statut d'une demande
+app.put("/assistance/update/:id", async (req, res) => {
+  try {
+    const demandeId = req.params.id;
+    const { status } = req.body;
+    console.log(demandeId);
+    if (!['accepté', 'refusé'].includes(status)) {
+      return res.status(400).send({ error: "Statut invalide" });
+    }
+
+    await db.collection("assistance").doc(demandeId).update({
+      status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Si la demande est acceptée, envoyer un email
+    if (status === 'accepté') {
+      // Récupérer les détails de la demande
+      const demandeDoc = await db.collection("assistance").doc(demandeId).get();
+      const demandeData = demandeDoc.data();
+
+      // Récupérer les détails du demandeur
+      const demandeurDoc = await db.collection("users").doc(demandeData.demandeurId).get();
+      const demandeurData = demandeurDoc.data();
+
+      // Préparer le contenu de l'email
+      const mailOptions = {
+        from: 'kenmotagn@gmail.com',
+        to: demandeData.destinataireEmail,
+        subject: 'Demande d\'assistance acceptée',
+        html: `
+          <h2>Demande d'assistance acceptée</h2>
+          <p>Vous avez accepté une demande d'assistance pour le cours de ${demandeData.matiere}.</p>
+          
+          <h3>Détails de la demande :</h3>
+          <ul>
+            <li><strong>Date :</strong> ${demandeData.date}</li>
+            <li><strong>Durée :</strong> ${demandeData.heures} heures</li>
+            <li><strong>Lieu :</strong> ${demandeData.lieu}</li>
+          </ul>
+
+          <h3>Coordonnées de l'étudiant :</h3>
+          <ul>
+            <li><strong>Nom :</strong> ${demandeurData.nom || 'Non spécifié'}</li>
+            <li><strong>Email :</strong> ${demandeurData.email}</li>
+            <li><strong>Classe :</strong> ${demandeurData.classe}</li>
+            <li><strong>Filière :</strong> ${demandeurData.filiere}</li>
+            ${demandeurData.telephone ? `<li><strong>Téléphone :</strong> ${demandeurData.telephone}</li>` : ''}
+          </ul>
+
+          <p><strong>Description de la demande :</strong><br>
+          ${demandeData.description}</p>
+
+          <p style="color: #666; font-size: 0.9em;">
+            Cet email a été envoyé automatiquement par l'application ISIB Assistance.
+          </p>
+        `
+      };
+
+      // Envoyer l'email
+      try {
+        await transporter.sendMail(mailOptions);
+        console.log('Email de confirmation envoyé');
+      } catch (emailError) {
+        console.error('Erreur lors de l\'envoi de l\'email:', emailError);
+        // Ne pas bloquer la mise à jour si l'email échoue
+      }
+    }
+
+    const updatedDoc = await db.collection("assistance").doc(demandeId).get();
+    res.status(200).send({ id: updatedDoc.id, ...updatedDoc.data() });
+  } catch (error) {
+    console.error("Erreur:", error);
+    res.status(500).send({ error: "Erreur lors de la mise à jour du statut." });
+  }
+});
+
+// Supprimer une demande
+app.delete("/assistance/:id", async (req, res) => {
+  try {
+    const demandeId = req.params.id;
+
+    await db.collection("assistance").doc(demandeId).delete();
+    res.status(200).send({ message: "Demande supprimée avec succès" });
+  } catch (error) {
+    console.error("Erreur:", error);
+    res.status(500).send({ error: "Erreur lors de la suppression de la demande." });
+  }
+});
+
 
 
 const firebaseAuthController = require('./controllers/firebase-auth-controller');
