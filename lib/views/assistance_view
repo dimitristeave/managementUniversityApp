@@ -1,0 +1,289 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:isibappmoodle/config/config';
+import 'package:isibappmoodle/reutilisable/app_drawer.dart';
+
+
+
+class AssistancePage extends StatefulWidget {
+  @override
+  _AssistancePageState createState() => _AssistancePageState();
+}
+
+class _AssistancePageState extends State<AssistancePage> {
+  final _formKey = GlobalKey<FormState>();
+  String? _selectedMatiere;
+  String? _selectedDestinataire;
+  DateTime? _selectedDate;
+  String? _selectedLieu;
+  Map<String, dynamic>? _selectedUser;
+  List<String> _matieres = []; 
+  bool _isLoadingMatieres = true;
+  
+  List<Map<String, dynamic>> _professors = [];
+  List<Map<String, dynamic>> _students = [];
+  TextEditingController _heuresController = TextEditingController();
+  TextEditingController _descriptionController = TextEditingController();
+
+  final List<String> _lieux = [
+    'Bibliothèque',
+    'Mon domicile',
+    'Ton domicile',
+    'En ligne'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoadingMatieres = true;
+    _fetchUsers();
+    _fetchMatieres();
+  }
+
+  Future<void> _fetchUsers() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${Config.sander}/users'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _professors = List<Map<String, dynamic>>.from(data['professors']);
+          _students = List<Map<String, dynamic>>.from(data['students']);
+        });
+      }
+    } catch (e) {
+      print('Erreur: $e');
+    }
+  }
+
+  Future<void> _submitDemande() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null || _selectedUser == null) return;
+      
+      try {
+        // Récupérer les données de l'utilisateur courant depuis Firestore
+        final userResponse = await http.get(
+          Uri.parse('${Config.sander}/user/${currentUser.uid}'),
+        );
+        
+        final userData = json.decode(userResponse.body);
+        
+        final response = await http.post(
+          Uri.parse('${Config.sander}/assistance'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'matiere': _selectedMatiere,
+            'destinataireId': _selectedUser!['uid'],
+            'destinataireEmail': _selectedUser!['email'],
+            'date': _selectedDate?.toIso8601String(),
+            'heures': int.parse(_heuresController.text),
+            'lieu': _selectedLieu,
+            'description': _descriptionController.text,
+            'demandeurId': currentUser.uid,
+            'demandeurEmail': currentUser.email,
+            'demandeurClasse': userData['classe'],
+            'demandeurFiliere': userData['filiere'],
+            'status': 'en attente'
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Demande envoyée avec succès')),
+          );
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de l\'envoi de la demande')),
+        );
+      }
+  }
+
+  Widget _buildUserTile(Map<String, dynamic> user) {
+    return ListTile(
+      title: Text(user['email'] ?? 'Email non disponible'),
+      subtitle: Text(
+        '${user['classe'] ?? ''} ${user['filiere'] ?? ''}'.trim(),
+      ),
+      onTap: () => setState(() => _selectedUser = user),
+      selected: _selectedUser == user,
+      trailing: _selectedUser == user ? Icon(Icons.check) : null,
+    );
+  }
+
+  // Ajout de la fonction pour récupérer les matières
+  Future<void> _fetchMatieres() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      // D'abord, récupérer les infos de l'utilisateur pour avoir sa classe et filière
+      final userResponse = await http.get(
+        Uri.parse('${Config.sander}/user/${currentUser.uid}'),
+      );
+
+      if (userResponse.statusCode != 200) {
+        throw Exception('Impossible de récupérer les informations utilisateur');
+      }
+
+      final userData = json.decode(userResponse.body);
+      final userClasse = userData['classe'];
+      final userFiliere = userData['filiere'];
+      print(userClasse);
+      print(userFiliere);
+
+      final String apiUrl ="${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
+      try {
+        final response = await http.get(Uri.parse(
+            '$apiUrl?classe=$userClasse&filiere=$userFiliere'));
+
+        if (response.statusCode == 200) {
+          setState(() {
+            final List<dynamic> data = json.decode(response.body); // Parse la réponse JSON
+            setState(() {
+              _matieres = data.map((subject) => subject['nom_matiere'] as String).toList();           
+            });
+          });
+        } else {
+          setState(() {
+          });
+        }
+      } catch (e) {
+        setState(() {
+        _matieres = [];  // Liste vide en cas d'erreur
+        });
+      }
+    } catch (e) {
+      print('Erreur lors de la récupération des matières: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la récupération des matières')),
+      );
+      setState(() {
+        _matieres = [];  // Liste vide en cas d'erreur
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Demande d\'assistance'),
+      ),
+      drawer: AppDrawer(),
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                      DropdownButtonFormField<String>(
+                        decoration: InputDecoration(labelText: 'Matière'),
+                        value: _selectedMatiere,
+                        items: _matieres.map((matiere) {
+                          return DropdownMenuItem(
+                            value: matiere,
+                            child: Text(matiere),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedMatiere = value);
+                        },
+                        validator: (value) => value == null ? 'Champ requis' : null,
+                      ),
+                SizedBox(height: 16),
+                
+                Text('Choisir un destinataire:', style: TextStyle(fontWeight: FontWeight.bold)),
+                
+                ExpansionTile(
+                  title: Text('Professeurs'),
+                  children: _professors.isEmpty 
+                    ? [ListTile(title: Text('Aucun professeur disponible'))]
+                    : _professors.map((prof) => _buildUserTile(prof)).toList(),
+                ),
+                
+                ExpansionTile(
+                  title: Text('Étudiants'),
+                  children: _students.isEmpty 
+                    ? [ListTile(title: Text('Aucun étudiant disponible'))]
+                    : _students.map((student) => _buildUserTile(student)).toList(),
+                ),
+                
+                SizedBox(height: 16),
+                
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Nombre d\'heures'),
+                  controller: _heuresController,
+                  keyboardType: TextInputType.number,
+                  validator: (value) => value?.isEmpty ?? true ? 'Champ requis' : null,
+                ),
+                
+                SizedBox(height: 16),
+                
+                TextButton(
+                  onPressed: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(Duration(days: 365)),
+                    );
+                    if (date != null) {
+                      setState(() => _selectedDate = date);
+                    }
+                  },
+                  child: Text(_selectedDate == null
+                      ? 'Choisir une date'
+                      : 'Date: ${_selectedDate.toString().split(' ')[0]}'),
+                ),
+                
+                SizedBox(height: 16),
+                
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(labelText: 'Lieu'),
+                  value: _selectedLieu,
+                  items: _lieux.map((lieu) {
+                    return DropdownMenuItem(
+                      value: lieu,
+                      child: Text(lieu),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedLieu = value);
+                  },
+                  validator: (value) => value == null ? 'Champ requis' : null,
+                ),
+                
+                SizedBox(height: 16),
+                
+                TextFormField(
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Détaillez votre demande d\'assistance',
+                  ),
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  validator: (value) => value?.isEmpty ?? true ? 'Champ requis' : null,
+                ),
+                
+                SizedBox(height: 24),
+                
+                ElevatedButton(
+                  onPressed: _submitDemande,
+                  child: Text('Envoyer la demande'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
