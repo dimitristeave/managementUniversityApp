@@ -26,12 +26,7 @@ class _SubjectsPageState extends State<SubjectsPage> {
   }
 
   Future<void> fetchSubjects() async {
-<<<<<<< HEAD
     final String apiUrl ="${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
-=======
-    final String apiUrl =
-        "${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
     try {
       final response = await http.get(Uri.parse(
           '$apiUrl?classe=${widget.className}&filiere=${widget.filiere}'));

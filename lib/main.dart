@@ -2,21 +2,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:isibappmoodle/notifications/works_notifications.dart';
-<<<<<<< HEAD
 import 'package:isibappmoodle/views/assistance_get_view';
 import 'package:isibappmoodle/views/assistance_view';
-=======
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 import 'package:isibappmoodle/views/auth_page.dart';
 import 'package:isibappmoodle/views/help_page.dart';
 import 'package:isibappmoodle/views/home_share_file_view.dart';
 import 'package:isibappmoodle/views/Opportunity_Views/opportunity_page.dart';
-<<<<<<< HEAD
 import 'package:isibappmoodle/views/project_management.dart';
 import 'package:isibappmoodle/views/suivi_view'; // Assurez-vous que ce fichier contient la page HomeShareFile
-=======
 import 'package:isibappmoodle/views/project_management.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,12 +43,9 @@ class MyApp extends StatelessWidget {
         '/opportunity': (context) => OpportunityPage(),
         '/project_management': (context) => ProjectManagementPage(),
         '/help': (context) => HelpPage(),
-<<<<<<< HEAD
         '/assistance': (context) => AssistancePage(),
         '/my_demands': (context) => AssistanceRequestsPage(),
         '/suivi': (context) => MyAssistanceRequestsPage(),
-=======
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
       },
     );
   }

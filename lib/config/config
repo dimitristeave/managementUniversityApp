@@ -1,9 +1,6 @@
 class Config {
   static const String sander = 'http://172.16.2.123:3000';
-<<<<<<< HEAD
   static String get assistance => '$sander/assistance';
   static String assistanceUpdate(String id) => '$sander/assistance/update/$id';
   static String mesDemandes(String userId) => '$sander/assistance/mes-demandes/$userId';
-=======
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 }

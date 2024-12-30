@@ -6,12 +6,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
-<<<<<<< HEAD
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
-=======
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
 class NotesPage extends StatefulWidget {
   final String subjectName;
@@ -25,17 +22,16 @@ class NotesPage extends StatefulWidget {
 class _NotesPageState extends State<NotesPage> {
   bool isLoading = true;
   bool hasError = false;
+  bool isUploading = false;
+  bool isDownloading = false;
   List<Map<String, dynamic>> notes = [];
   final ImagePicker _picker = ImagePicker();
   File? _file;
   String fileName = '';
   String noteDescription = '';
   String? selectedType;
-  DateTime? _selectedDate; // Utilisation de DateTime pour la date de prise de note
-<<<<<<< HEAD
+  DateTime? _selectedDate;
   final Dio _dio = Dio();
-=======
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
   final List<String> contentTypes = [
     'cours oral',
@@ -52,22 +48,11 @@ class _NotesPageState extends State<NotesPage> {
 
   // Fonction pour récupérer les notes depuis le serveur
   Future<void> fetchNotes() async {
-<<<<<<< HEAD
-  try {
-    final response = await http.get(
-      Uri.parse('${Config.sander}/getNotes?subjectName=${widget.subjectName}'),
-    );
+    setState(() {
+      isLoading = true;
+      hasError = false;
+    });
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
-      print('Notes data: $data'); // Log pour debug
-      setState(() {
-        notes = List<Map<String, dynamic>>.from(data);
-        isLoading = false;
-      });
-    } else {
-      print('Error response: ${response.body}'); // Log pour debug
-=======
     try {
       final response = await http.get(
         Uri.parse('${Config.sander}/getNotes?subjectName=${widget.subjectName}'),
@@ -80,134 +65,172 @@ class _NotesPageState extends State<NotesPage> {
           isLoading = false;
         });
       } else {
-        setState(() {
-          hasError = true;
-          isLoading = false;
-        });
+        throw Exception('Erreur serveur: ${response.statusCode}');
       }
     } catch (error) {
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
+      print("Erreur lors de la récupération des notes : $error");
       setState(() {
         hasError = true;
         isLoading = false;
       });
-<<<<<<< HEAD
-    }
-  } catch (error) {
-    print("Erreur lors de la récupération des notes : $error");
-    setState(() {
-      hasError = true;
-      isLoading = false;
-    });
-  }
-}
-=======
-      print("Erreur lors de la récupération des notes : $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors du chargement des notes: $error')),
+      );
     }
   }
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
   // Fonction pour ouvrir le formulaire d'upload
   Future<void> uploadNote() async {
+    setState(() {
+      _file = null;
+      fileName = '';
+      noteDescription = '';
+      selectedType = null;
+      _selectedDate = null;
+    });
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    decoration: InputDecoration(labelText: "Nom du fichier"),
-                    onChanged: (value) => fileName = value,
-                  ),
-                  SizedBox(height: 10),
-                  TextField(
-                    decoration: InputDecoration(labelText: "Description des notes"),
-                    onChanged: (value) => noteDescription = value,
-                  ),
-                  SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    decoration: InputDecoration(labelText: "Type de contenu"),
-                    value: selectedType,
-                    items: contentTypes.map((String type) {
-                      return DropdownMenuItem<String>(
-                        value: type,
-                        child: Text(type),
-                      );
-                    }).toList(),
-                    onChanged: (value) => selectedType = value,
-                  ),
-                  SizedBox(height: 10),
-                  TextFormField(
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'Date de prise de note',
-                      hintText: 'Sélectionnez une date',
-                    ),
-                    controller: TextEditingController(
-                      text: _selectedDate != null
-                          ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
-                          : '',
-                    ),
-                    onTap: () async {
-                      DateTime? pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate ?? DateTime.now(),
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2101),
-                      );
-                      if (pickedDate != null) {
-                        setState(() => _selectedDate = pickedDate);
-                      }
-                    },
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.camera),
-                        label: Text('Camera'),
-                        onPressed: () async {
-                          final pickedImage = await _picker.pickImage(source: ImageSource.camera);
-                          if (pickedImage != null) {
-                            setState(() => _file = File(pickedImage.path));
-                          }
-                        },
-                      ),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.folder),
-                        label: Text('Galerie'),
-                        onPressed: () async {
-                          final pickedImage = await _picker.pickImage(source: ImageSource.gallery);
-                          if (pickedImage != null) {
-                            setState(() => _file = File(pickedImage.path));
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _file != null &&
-                            fileName.isNotEmpty &&
-                            noteDescription.isNotEmpty &&
-                            selectedType != null &&
-                            _selectedDate != null
-                        ? () {
-                            uploadFileToServer();
-                            Navigator.pop(context); // Ferme le formulaire après upload
-                          }
-                        : null,
-                    child: Text("Upload"),
-                  ),
-                ],
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-            ),
-          ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          decoration: InputDecoration(
+                            labelText: "Nom du fichier",
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) => setModalState(() => fileName = value),
+                        ),
+                        SizedBox(height: 10),
+                        TextField(
+                          decoration: InputDecoration(
+                            labelText: "Description des notes",
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 3,
+                          onChanged: (value) => setModalState(() => noteDescription = value),
+                        ),
+                        SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            labelText: "Type de contenu",
+                            border: OutlineInputBorder(),
+                          ),
+                          value: selectedType,
+                          items: contentTypes.map((String type) {
+                            return DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                          onChanged: (value) => setModalState(() => selectedType = value),
+                        ),
+                        SizedBox(height: 10),
+                        InkWell(
+                          onTap: () async {
+                            DateTime? pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDate ?? DateTime.now(),
+                              firstDate: DateTime(2000),
+                              lastDate: DateTime(2101),
+                            );
+                            if (pickedDate != null) {
+                              setModalState(() => _selectedDate = pickedDate);
+                            }
+                          },
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Date de prise de note',
+                              border: OutlineInputBorder(),
+                            ),
+                            child: Text(
+                              _selectedDate != null
+                                  ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                                  : 'Sélectionnez une date',
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: Icon(Icons.camera_alt),
+                                label: Text('Camera'),
+                                onPressed: () async {
+                                  final pickedImage = await _picker.pickImage(source: ImageSource.camera);
+                                  if (pickedImage != null) {
+                                    setModalState(() => _file = File(pickedImage.path));
+                                  }
+                                },
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: Icon(Icons.folder),
+                                label: Text('Galerie'),
+                                onPressed: () async {
+                                  final pickedImage = await _picker.pickImage(source: ImageSource.gallery);
+                                  if (pickedImage != null) {
+                                    setModalState(() => _file = File(pickedImage.path));
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_file != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              'Fichier sélectionné: ${_file!.path.split('/').last}',
+                              style: TextStyle(color: Colors.green),
+                            ),
+                          ),
+                        SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: EdgeInsets.symmetric(vertical: 15),
+                            ),
+                            onPressed: _file != null &&
+                                    fileName.isNotEmpty &&
+                                    noteDescription.isNotEmpty &&
+                                    selectedType != null &&
+                                    _selectedDate != null
+                                ? () async {
+                                    Navigator.pop(context);
+                                    await uploadFileToServer();
+                                  }
+                                : null,
+                            child: isUploading
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text("Upload"),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -217,8 +240,10 @@ class _NotesPageState extends State<NotesPage> {
   Future<void> uploadFileToServer() async {
     try {
       if (_file == null || fileName.isEmpty || noteDescription.isEmpty || _selectedDate == null) {
-        return;
+        throw Exception("Veuillez remplir tous les champs");
       }
+
+      setState(() => isUploading = true);
 
       var request = http.MultipartRequest(
         'POST',
@@ -239,47 +264,49 @@ class _NotesPageState extends State<NotesPage> {
       request.fields['contentType'] = selectedType!;
       request.fields['noteDate'] = '${_selectedDate!.year}-${_selectedDate!.month}-${_selectedDate!.day}';
 
-      var response = await request.send();
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        print("Fichier uploadé avec succès");
-        fetchNotes();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Note ajoutée avec succès')),
+        );
+        await fetchNotes();
       } else {
-        print("Erreur lors de l'upload : ${response.statusCode}");
+        throw Exception("Erreur lors de l'upload: ${response.statusCode}");
       }
     } catch (e) {
-      print("Erreur : $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    } finally {
+      setState(() => isUploading = false);
     }
   }
 
-<<<<<<< HEAD
   // Fonction pour télécharger et ouvrir un fichier
   Future<void> downloadAndOpenFile(Map<String, dynamic> note) async {
+    if (isDownloading) return;
+
     try {
-      // Vérification de la présence de l'ID
-      final String? noteId = note['_id'] ?? note['id']; // Vérifie les deux formats possibles
+      setState(() => isDownloading = true);
+
+      final String? noteId = note['_id'] ?? note['id'];
       if (noteId == null) {
         throw Exception("ID de la note manquant");
       }
-
-      // Afficher un indicateur de progression
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Center(child: CircularProgressIndicator());
-        },
-      );
 
       final dir = await getApplicationDocumentsDirectory();
       final fileName = note['fileName'] ?? 'fichier';
       final filePath = '${dir.path}/$fileName';
 
-      // Log pour debug
-      print('Downloading from: ${Config.sander}/downloadNote/$noteId');
+      // Vérifier si le fichier existe déjà
+      if (await File(filePath).exists()) {
+        await OpenFile.open(filePath);
+        return;
+      }
 
-      // Utilisation de Dio avec logs détaillés
-      final response = await _dio.download(
+      await _dio.download(
         '${Config.sander}/downloadNote/$noteId',
         filePath,
         onReceiveProgress: (received, total) {
@@ -287,43 +314,23 @@ class _NotesPageState extends State<NotesPage> {
             print('Download progress: ${(received / total * 100).toStringAsFixed(0)}%');
           }
         },
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-          validateStatus: (status) {
-            return status! < 500;
-          },
-        ),
       );
 
-      // Vérifier le statut de la réponse
-      if (response.statusCode != 200) {
-        throw Exception('Erreur serveur: ${response.statusCode}');
-      }
-
-      Navigator.pop(context); // Ferme le dialogue de progression
-
-      // Ouvrir le fichier
       final result = await OpenFile.open(filePath);
       if (result.type != ResultType.done) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Impossible d\'ouvrir le fichier: ${result.message}')),
-        );
+        throw Exception('Impossible d\'ouvrir le fichier: ${result.message}');
       }
     } catch (e) {
-      Navigator.pop(context); // Ferme le dialogue de progression en cas d'erreur
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors du téléchargement: $e')),
+        SnackBar(content: Text('Erreur: $e')),
       );
+    } finally {
+      setState(() => isDownloading = false);
     }
   }
 
-=======
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
-  @override
   @override
   Widget build(BuildContext context) {
-    // Organiser les notes par type
     final Map<String, List<Map<String, dynamic>>> groupedNotes = {};
     for (var note in notes) {
       final type = note['contentType'] ?? 'Autre';
@@ -338,18 +345,46 @@ class _NotesPageState extends State<NotesPage> {
         title: Text('${widget.subjectName} - Notes'),
         actions: [
           IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: fetchNotes,
+            tooltip: 'Rafraîchir',
+          ),
+          IconButton(
             icon: Icon(Icons.upload_file),
-            tooltip: 'Ajouter une note',
             onPressed: uploadNote,
+            tooltip: 'Ajouter une note',
           ),
         ],
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : hasError
-              ? Center(child: Text("Erreur lors du chargement des notes"))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Erreur lors du chargement des notes"),
+                      ElevatedButton(
+                        onPressed: fetchNotes,
+                        child: Text("Réessayer"),
+                      ),
+                    ],
+                  ),
+                )
               : groupedNotes.isEmpty
-                  ? Center(child: Text("Aucune note disponible"))
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("Aucune note disponible"),
+                          ElevatedButton.icon(
+                            icon: Icon(Icons.upload_file),
+                            label: Text("Ajouter une note"),
+                            onPressed: uploadNote,
+                          ),
+                        ],
+                      ),
+                    )
                   : ListView(
                       children: groupedNotes.entries.map((entry) {
                         final contentType = entry.key;
@@ -371,19 +406,14 @@ class _NotesPageState extends State<NotesPage> {
                                   subtitle: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Description : ${note['noteDescription'] ?? 'Aucune description'}'),
-                                      Text('Date : ${note['noteDate'] ?? 'Non spécifiée'}'),
+                                      Text('Description: ${note['noteDescription'] ?? 'Aucune description'}'),
+                                      Text('Date: ${note['noteDate'] ?? 'Non spécifiée'}'),
                                     ],
                                   ),
-                                  trailing: Icon(Icons.file_download),
-<<<<<<< HEAD
+                                  trailing: isDownloading
+                                      ? CircularProgressIndicator()
+                                      : Icon(Icons.file_download),
                                   onTap: () => downloadAndOpenFile(note),
-=======
-                                  onTap: () {
-                                    // Logic to download or view the file
-                                    print("Télécharger le fichier : ${note['filePath']}");
-                                  },
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
                                 );
                               }).toList(),
                             ),
@@ -394,4 +424,9 @@ class _NotesPageState extends State<NotesPage> {
     );
   }
 
+  @override
+  void dispose() {
+    _dio.close();
+    super.dispose();
+  }
 }

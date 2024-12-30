@@ -11,11 +11,8 @@ plugins {
 android {
     namespace = "com.example.isibappmoodle"
     compileSdk = flutter.compileSdkVersion
-<<<<<<< HEAD
     ndkVersion "25.1.8937393"
-=======
     ndkVersion = flutter.ndkVersion
->>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
