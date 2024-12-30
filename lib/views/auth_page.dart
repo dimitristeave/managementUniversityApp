@@ -39,7 +39,6 @@ class _AuthPageState extends State<AuthPage> {
     "Electricité"
   ];
 
-
   // Fonction pour se connecter
   Future<void> _signIn() async {
     try {

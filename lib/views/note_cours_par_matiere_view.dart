@@ -6,9 +6,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
+<<<<<<< HEAD
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
+=======
+>>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
 class NotesPage extends StatefulWidget {
   final String subjectName;
@@ -29,7 +32,10 @@ class _NotesPageState extends State<NotesPage> {
   String noteDescription = '';
   String? selectedType;
   DateTime? _selectedDate; // Utilisation de DateTime pour la date de prise de note
+<<<<<<< HEAD
   final Dio _dio = Dio();
+=======
+>>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
   final List<String> contentTypes = [
     'cours oral',
@@ -46,6 +52,7 @@ class _NotesPageState extends State<NotesPage> {
 
   // Fonction pour récupérer les notes depuis le serveur
   Future<void> fetchNotes() async {
+<<<<<<< HEAD
   try {
     final response = await http.get(
       Uri.parse('${Config.sander}/getNotes?subjectName=${widget.subjectName}'),
@@ -60,10 +67,31 @@ class _NotesPageState extends State<NotesPage> {
       });
     } else {
       print('Error response: ${response.body}'); // Log pour debug
+=======
+    try {
+      final response = await http.get(
+        Uri.parse('${Config.sander}/getNotes?subjectName=${widget.subjectName}'),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          notes = List<Map<String, dynamic>>.from(data);
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          hasError = true;
+          isLoading = false;
+        });
+      }
+    } catch (error) {
+>>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
       setState(() {
         hasError = true;
         isLoading = false;
       });
+<<<<<<< HEAD
     }
   } catch (error) {
     print("Erreur lors de la récupération des notes : $error");
@@ -73,6 +101,11 @@ class _NotesPageState extends State<NotesPage> {
     });
   }
 }
+=======
+      print("Erreur lors de la récupération des notes : $error");
+    }
+  }
+>>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
 
   // Fonction pour ouvrir le formulaire d'upload
   Future<void> uploadNote() async {
@@ -219,6 +252,7 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
+<<<<<<< HEAD
   // Fonction pour télécharger et ouvrir un fichier
   Future<void> downloadAndOpenFile(Map<String, dynamic> note) async {
     try {
@@ -284,6 +318,8 @@ class _NotesPageState extends State<NotesPage> {
     }
   }
 
+=======
+>>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
   @override
   @override
   Widget build(BuildContext context) {
@@ -340,7 +376,14 @@ class _NotesPageState extends State<NotesPage> {
                                     ],
                                   ),
                                   trailing: Icon(Icons.file_download),
+<<<<<<< HEAD
                                   onTap: () => downloadAndOpenFile(note),
+=======
+                                  onTap: () {
+                                    // Logic to download or view the file
+                                    print("Télécharger le fichier : ${note['filePath']}");
+                                  },
+>>>>>>> 0b6161b2a412eca9538c4f99aa2680a9c6a787ba
                                 );
                               }).toList(),
                             ),
