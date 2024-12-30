@@ -70,7 +70,10 @@ class _AuthPageState extends State<AuthPage> {
     final String password = _passwordController.text;
 
     // Vérification des champs
-    if (email.isEmpty || password.isEmpty || _selectedClasse == null || _selectedFiliere == null) {
+    if (email.isEmpty ||
+        password.isEmpty ||
+        _selectedClasse == null ||
+        _selectedFiliere == null) {
       setState(() {
         _message =
             "L'email, le mot de passe et la section sont requis pour l'inscription.";
@@ -94,18 +97,17 @@ class _AuthPageState extends State<AuthPage> {
       );
 
       if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        final idToken = data['idToken'];
-        final role = data['role'];
+        // Une fois l'utilisateur créé, on tente de se connecter
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
 
-        // Inscription réussie, rediriger ou traiter le token
         setState(() {
-          _message = 'Inscription réussie!';
+          _message = 'Inscription et connexion réussies!';
         });
 
-        // Sauvegarder le token ou utiliser pour l'authentification Firebase si nécessaire
-
-        // Rediriger vers la page d'accueil
+        // Rediriger vers la page d'accueil après inscription et connexion
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeShareFile()),
