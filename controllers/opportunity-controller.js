@@ -32,15 +32,16 @@ class OpportunityController {
     }
 
     addWork = async (req, res) => {
-        const { company, type, section, address, description, link } = req.body;
+        const { uid, company, type, section, address, description, link } = req.body;
 
-        if (!company || !section || !address || !description || !type) {
+        if (!uid || !company || !section || !address || !description || !type) {
             return res.status(400).send({ error: "Des informations sont manquantes, vérifiez que tout vos champs sont complets." });
-        }
+        }        
 
         try {
             // Enregistrer l'offre d'emploi dans Firestore
             const docRef = await db.collection('works').add({
+                uid: uid, // Ajouter l'UID de l'utilisateur
                 company: company,
                 type: type,
                 section: section,
@@ -80,7 +81,7 @@ class OpportunityController {
     
             // Vérifie si la collection est vide
             if (snapshot.empty) {
-                return res.status(404).send({ message: "Aucune opportunité trouvée." });
+                return res.status(200).send([]);
             }
     
             // Transforme les documents en un tableau d'objets
@@ -88,7 +89,7 @@ class OpportunityController {
                 id: doc.id, // ID du document
                 ...doc.data() // Données du document
             }));
-    
+            
             res.status(200).send(works);
         } catch (error) {
             console.error("Erreur lors de la récupération des opportunités :", error);
@@ -99,7 +100,8 @@ class OpportunityController {
     updateWorks = async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
-      
+        const userUid = req.headers['user-uid']; 
+    
         try {
             const docRef = db.collection('works').doc(id);
             const doc = await docRef.get();
@@ -107,6 +109,11 @@ class OpportunityController {
             // Vérifie si le document existe
             if (!doc.exists) {
                 return res.status(404).send("Offre introuvable.");
+            }
+    
+            // Vérifie si l'utilisateur est autorisé à modifier
+            if (doc.data().uid !== userUid) {
+                return res.status(403).send("Vous n'êtes pas autorisé à modifier cette opportunité.");
             }
     
             // Met à jour le document avec les nouvelles informations
@@ -122,18 +129,22 @@ class OpportunityController {
         }
     }
     
-
-      deleteWorks = async (req, res) => {
-        const { id } = req.params;
-      
+    deleteWorks = async (req, res) => {
+        const { id} = req.params;
+        const userUid = req.headers['user-uid']; 
+    
         try {
-            // Utilisation de la méthode Firestore pour supprimer un document par son ID
             const docRef = db.collection('works').doc(id);
             const doc = await docRef.get();
     
             // Vérifie si le document existe
             if (!doc.exists) {
                 return res.status(404).send("Offre introuvable.");
+            }
+    
+            // Vérifie si l'utilisateur est autorisé à supprimer
+            if (doc.data().uid !== userUid) {
+                return res.status(403).send("Vous n'êtes pas autorisé à supprimer cette opportunité.");
             }
     
             // Supprime le document
@@ -145,6 +156,9 @@ class OpportunityController {
             res.status(500).send("Erreur lors de la suppression.");
         }
     }
+
+    
+
     // Ajouter ou mettre à jour les préférences de notification pour un utilisateur
     updatePreferences = async (req, res) => {
         const { userId, topics } = req.body;

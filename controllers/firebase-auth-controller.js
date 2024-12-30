@@ -4,9 +4,9 @@ const db = admin.firestore();
 class FirebaseAuthController {
 
     signup = async (req, res) => {
-        const { email, password, section} = req.body;
+        const { email, password, classe, filiere} = req.body;
     
-        if (!email || !password || !section) {
+        if (!email || !password || !classe || !filiere) {
             return res.status(400).send({ error: "Email et mot de passe ou section sont requis." });
         }
     
@@ -55,7 +55,8 @@ class FirebaseAuthController {
             await db.collection('users').doc(user.uid).set({
                 email: email,
                 role: role,
-                section : section,
+                classe : classe,
+                filiere : filiere,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
     
