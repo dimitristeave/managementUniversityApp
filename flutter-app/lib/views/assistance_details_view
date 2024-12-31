@@ -1,0 +1,129 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:isibappmoodle/config/config';
+import 'package:isibappmoodle/reutilisable/app_drawer.dart';
+import 'package:isibappmoodle/config/config';
+
+
+class AssistanceDetailsPage extends StatefulWidget {
+  final Map<String, dynamic> demande;
+
+  AssistanceDetailsPage({required this.demande});
+
+  @override
+  _AssistanceDetailsPageState createState() => _AssistanceDetailsPageState();
+}
+
+class _AssistanceDetailsPageState extends State<AssistanceDetailsPage> {
+  bool _isUpdating = false;
+
+  Future<void> _updateStatus(String newStatus) async {
+    setState(() => _isUpdating = true);
+    print({widget.demande['_id']});
+    try {
+      final response = await http.put(
+        Uri.parse('${Config.sander}/assistance/update/${widget.demande['id']}'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'status': newStatus}),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Statut mis à jour avec succès')),
+        );
+        Navigator.pop(context);
+      } else {
+        throw Exception('Échec de la mise à jour');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la mise à jour')),
+      );
+    } finally {
+      setState(() => _isUpdating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Détails de la demande'),
+      ),
+      body: _isUpdating
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    initialValue: widget.demande['matiere'],
+                    decoration: InputDecoration(labelText: 'Matière'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: widget.demande['demandeurEmail'],
+                    decoration: InputDecoration(labelText: 'Email du demandeur'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: widget.demande['demandeurClasse'],
+                    decoration: InputDecoration(labelText: 'Classe'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: widget.demande['demandeurFiliere'],
+                    decoration: InputDecoration(labelText: 'Filière'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: widget.demande['date'],
+                    decoration: InputDecoration(labelText: 'Date'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: '${widget.demande['heures']} heures',
+                    decoration: InputDecoration(labelText: 'Durée'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: widget.demande['lieu'],
+                    decoration: InputDecoration(labelText: 'Lieu'),
+                    readOnly: true,
+                  ),
+                  TextFormField(
+                    initialValue: widget.demande['description'],
+                    decoration: InputDecoration(labelText: 'Description'),
+                    maxLines: 3,
+                    readOnly: true,
+                  ),
+                  SizedBox(height: 20),
+                  if (widget.demande['status'] == 'en attente')
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => _updateStatus('refusé'),
+                          style: ButtonStyle(
+                            backgroundColor: MaterialStateProperty.all(Colors.red),
+                          ),
+                          child: Text('Refuser'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => _updateStatus('accepté'),
+                          style: ButtonStyle(
+                            backgroundColor: MaterialStateProperty.all(Colors.green),
+                          ),
+                          child: Text('Valider'),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+    );
+  }
+}

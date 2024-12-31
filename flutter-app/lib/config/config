@@ -1,0 +1,6 @@
+class Config {
+  static const String sander = 'http://192.168.129.234:3000';
+  static String get assistance => '$sander/assistance';
+  static String assistanceUpdate(String id) => '$sander/assistance/update/$id';
+  static String mesDemandes(String userId) => '$sander/assistance/mes-demandes/$userId';
+}
