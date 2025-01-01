@@ -14,6 +14,8 @@ class ForumPage extends StatefulWidget {
 }
 
 class _ForumPageState extends State<ForumPage> {
+
+  String? currentSection;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ImagePicker _picker = ImagePicker();
 
@@ -43,7 +45,12 @@ class _ForumPageState extends State<ForumPage> {
     {"id": "13", "name": "MA2 Electromécanique"},
     {"id": "14", "name": "MA2 Aéronautique"},
   ];
-
+  List<Map<String, dynamic>> getFilteredQuestions() {
+    if (currentSection == null) {
+      return questions;
+    }
+    return questions.where((q) => q['section'] == currentSection).toList();
+  }
   @override
   void initState() {
     super.initState();
@@ -290,7 +297,6 @@ class _ForumPageState extends State<ForumPage> {
     );
     return section["name"]!;
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -310,122 +316,155 @@ class _ForumPageState extends State<ForumPage> {
           ),
         ],
       ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : hasError
-          ? Center(child: Text("Erreur lors du chargement des questions"))
-          : questions.isEmpty
-          ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.question_answer_outlined, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              "Aucune question disponible",
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(8.0),
+            child: DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: "Filtrer par section",
+                border: OutlineInputBorder(),
+              ),
+              value: currentSection,
+              items: [
+                DropdownMenuItem<String>(
+                  value: null,
+                  child: Text("Toutes les sections"),
+                ),
+                ...sections.map((section) {
+                  return DropdownMenuItem(
+                    value: section["id"],
+                    child: Text(section["name"]!),
+                  );
+                }).toList(),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  currentSection = value;
+                });
+              },
             ),
-            SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: addQuestion,
-              child: Text("Poser une question"),
-            ),
-          ],
-        ),
-      )
-          : ListView.builder(
-        itemCount: questions.length,
-        itemBuilder: (context, index) {
-          final question = questions[index];
-          final timestamp = question['createdAt'] != null
-              ? (question['createdAt'] as Map)['_seconds']
-              : null;
-          final date = timestamp != null
-              ? DateTime.fromMillisecondsSinceEpoch(timestamp * 1000)
-              : DateTime.now();
-
-          return Card(
-            margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ListTile(
-                  title: Text(
-                    question['title'] ?? 'Sans titre',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: isLoading
+                ? Center(child: CircularProgressIndicator())
+                : hasError
+                ? Center(child: Text("Erreur lors du chargement des questions"))
+                : getFilteredQuestions().isEmpty
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.question_answer_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    "Aucune question disponible",
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
-                  subtitle: Column(
+                  SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: addQuestion,
+                    child: Text("Poser une question"),
+                  ),
+                ],
+              ),
+            )
+                : ListView.builder(
+              itemCount: getFilteredQuestions().length,
+              itemBuilder: (context, index) {
+                final question = getFilteredQuestions()[index];
+                final timestamp = question['createdAt'] != null
+                    ? (question['createdAt'] as Map)['_seconds']
+                    : null;
+                final date = timestamp != null
+                    ? DateTime.fromMillisecondsSinceEpoch(timestamp * 1000)
+                    : DateTime.now();
+
+                return Card(
+                  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 4),
-                      Text(question['content'] ?? ''),
-                      if (question['imageUrl'] != null)
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Image.network(
-                            question['imageUrl'],
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
+                      ListTile(
+                        title: Text(
+                          question['title'] ?? 'Sans titre',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.school, size: 14, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            getSectionName(question['section']),
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.person, size: 14, color: Colors.grey),
-                          SizedBox(width: 4),
-                          Text(
-                            question['userEmail'] ?? 'Anonyme',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(
-                            question['userRole'] == 'professor'
-                                ? Icons.school
-                                : Icons.person_outline,
-                            size: 14,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            question['userRole'] == 'professor'
-                                ? 'Professeur'
-                                : 'Étudiant',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        'Posté le ${date.day}/${date.month}/${date.year}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: 4),
+                            Text(question['content'] ?? ''),
+                            if (question['imageUrl'] != null)
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Image.network(
+                                  question['imageUrl'],
+                                  height: 200,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.school, size: 14, color: Colors.grey),
+                                SizedBox(width: 4),
+                                Text(
+                                  getSectionName(question['section']),
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Icon(Icons.person, size: 14, color: Colors.grey),
+                                SizedBox(width: 4),
+                                Text(
+                                  question['userEmail'] ?? 'Anonyme',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(
+                                  question['userRole'] == 'professor'
+                                      ? Icons.school
+                                      : Icons.person_outline,
+                                  size: 14,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  question['userRole'] == 'professor'
+                                      ? 'Professeur'
+                                      : 'Étudiant',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              'Posté le ${date.day}/${date.month}/${date.year}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuestionDetailPage(question: question),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => QuestionDetailPage(question: question),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
-}
+  }
