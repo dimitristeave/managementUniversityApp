@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="test_image.png">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/app/intermediates/compressed_assets/debug/out/assets/flutter_assets/packages/awesome_notifications/test/assets/images/test_image.png.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

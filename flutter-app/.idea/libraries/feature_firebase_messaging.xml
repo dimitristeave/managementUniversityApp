@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="feature-firebase_messaging">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/build/firebase_messaging/intermediates/merged_java_res/debug/feature-firebase_messaging.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

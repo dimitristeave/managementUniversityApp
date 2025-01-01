@@ -1,0 +1,1 @@
+ C:\\Users\\yasyn\\managementUniversityApp\\flutter-app\\.dart_tool\\flutter_build\\1655e00ed624b82bad8b3e7668487f9e\\native_assets.yaml: 
