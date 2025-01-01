@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="feature-awesome_notifications">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/build/awesome_notifications/intermediates/merged_java_res/debug/feature-awesome_notifications.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
