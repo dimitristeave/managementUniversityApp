@@ -10,8 +10,7 @@ import 'package:isibappmoodle/views/profil_page.dart';
 import 'package:isibappmoodle/views/home_share_file_view.dart';
 import 'package:isibappmoodle/views/Opportunity_Views/opportunity_page.dart';
 import 'package:isibappmoodle/views/project_management.dart';
-import 'package:isibappmoodle/views/suivi_view'; // Assurez-vous que ce fichier contient la page HomeShareFile
-import 'package:isibappmoodle/views/project_management.dart'; // Assurez-vous que ce fichier contient la page HomeShareFile
+import 'package:isibappmoodle/views/suivi_view';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
