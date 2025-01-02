@@ -5,6 +5,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const cors = require('cors');
 
 const { Storage } = require('@google-cloud/storage');
 
@@ -770,6 +771,321 @@ app.post('/preferences', opportunityController.updatePreferences);
 // Route pour récupérer les préférences d'un utilisateur
 app.get('/preferences/:userId', opportunityController.getPreferences);
 
+//////// etienne///////
+
+// Modèle de tâche amélioré
+const taskSchema = {
+  projectId: String,
+  name: String,
+  description: String,
+  assignedTo: String,
+  deadline: Date,
+  status: String, // 'pending', 'in-progress', 'completed'
+  progress: Number, // 0-100
+  files: [{
+    filename: String,
+    url: String,
+    uploadedAt: Date
+  }],
+  comments: [{
+    userId: String,
+    content: String,
+    timestamp: Date
+  }]
+};
+
+
+// Obtenir tous les projets
+app.get('/api/projects', async (req, res) => {
+  try {
+    const projectsSnapshot = await db.collection('projects').get();
+    const projects = projectsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    res.status(200).json(projects);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération des projets', error });
+  }
+});
+
+// Ajouter un projet
+app.post('/api/projects', async (req, res) => {
+  const { name, deadline } = req.body;
+
+  try {
+    const newProject = {
+      name,
+      deadline,
+      status: 'En cours',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      completedAt: null,
+    };
+    const docRef = await db.collection('projects').add(newProject);
+    res.status(201).json({ id: docRef.id });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de l\'ajout du projet', error });
+  }
+});
+
+// Obtenir les détails d'un projet
+app.get('/api/projects/:projectId', async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const projectDoc = await db.collection('projects').doc(projectId).get();
+    if (!projectDoc.exists) {
+      return res.status(404).json({ message: 'Projet non trouvé' });
+    }
+
+    const projectData = projectDoc.data();
+    const tasksSnapshot = await db
+      .collection('tasks')
+      .where('projectId', '==', projectId)
+      .get();
+    const tasks = tasksSnapshot.docs.map((doc) => doc.data());
+
+    res.status(200).json({ ...projectData, tasks });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération du projet', error });
+  }
+});
+
+
+// Ajouter une tâche à un projet
+app.post('/api/tasks', async (req, res) => {
+  const { projectId, taskName, assignedTo, deadline } = req.body;
+
+  try {
+    const newTask = {
+      projectId,
+      taskName,
+      assignedTo,
+      deadline,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await db.collection('tasks').add(newTask);
+    res.status(201).json({ message: 'Tâche ajoutée avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de l\'ajout de la tâche', error });
+  }
+});
+
+// Mettre à jour le statut d'un projet
+app.put('/api/projects/:projectId/status', async (req, res) => {
+  const { projectId } = req.params;
+  const { status } = req.body;
+
+  try {
+    await db.collection('projects').doc(projectId).update({ status });
+    res.status(200).json({ message: 'Statut du projet mis à jour' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la mise à jour du statut', error });
+  }
+});
+
+// Mettre à jour le statut et ajouter la date de clôture du projet
+app.put('/api/projects/:projectId/complete', async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const projectDoc = await db.collection('projects').doc(projectId).get();
+    if (!projectDoc.exists) {
+      return res.status(404).json({ message: 'Projet non trouvé' });
+    }
+
+    const projectData = projectDoc.data();
+
+    // Si le projet est déjà terminé, ne pas le modifier à nouveau
+    if (projectData.status === 'Terminé') {
+      return res.status(400).json({ message: 'Le projet est déjà terminé' });
+    }
+
+    // Mettre à jour le statut et la date de clôture
+    await db.collection('projects').doc(projectId).update({
+      status: 'Terminé',
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.status(200).json({ message: 'Projet terminé avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la mise à jour du projet', error });
+  }
+});
+
+// Ajouter un membre à un projet
+app.post('/api/projects/:projectId/members', async (req, res) => {
+    const { userId } = req.body;  // L'ID de l'utilisateur que tu veux ajouter
+    const { projectId } = req.params;
+
+    try {
+        // Recherche du projet dans la base de données
+        const project = await Project.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({ message: "Projet non trouvé" });
+        }
+
+        // Ajouter l'ID de l'utilisateur au tableau 'members' du projet
+        if (!project.members.includes(userId)) {
+            project.members.push(userId);
+            await project.save();
+            res.status(200).json({ message: 'Membre ajouté avec succès' });
+        } else {
+            res.status(400).json({ message: 'L\'utilisateur est déjà membre' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur interne du serveur' });
+    }
+});
+
+// Obtenir les membres d'un projet
+app.get('/api/projects/:projectId/members', async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const projectDoc = await db.collection('projects').doc(projectId).get();
+    if (!projectDoc.exists) {
+      return res.status(404).json({ message: 'Projet non trouvé' });
+    }
+
+    const projectData = projectDoc.data();
+    const members = projectData?.members || [];
+
+    // Récupérer les informations des utilisateurs
+    const userPromises = members.map(async (userId) => {
+      const userDoc = await db.collection('users').doc(userId).get();
+      return userDoc.exists ? userDoc.data() : null;
+    });
+
+    const usersData = await Promise.all(userPromises);
+
+    res.status(200).json(usersData.filter(Boolean)); // Renvoie les utilisateurs valides
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la récupération des membres', error });
+  }
+});
+
+// Récupérer les membres d'un projet
+app.get('/api/projects/:projectId/members', async (req, res) => {
+    const { projectId } = req.params;
+
+    try {
+        // Trouver le projet
+        const project = await Project.findById(projectId).populate('members');
+
+        if (!project) {
+            return res.status(404).json({ message: "Projet non trouvé" });
+        }
+
+        // Récupérer les membres (les utilisateurs sont peuplés via leurs IDs)
+        const members = project.members;  // Ce sont des objets utilisateurs grâce à populate
+        res.status(200).json(members);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur interne du serveur' });
+    }
+});
+
+// API pour uploader des fichiers pour une tâche
+app.post('/api/tasks/:taskId/files', upload.single('file'), async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ message: 'Aucun fichier fourni' });
+    }
+
+    const fileName = `tasks/${taskId}/${Date.now()}_${file.originalname}`;
+    const fileUpload = bucket.file(fileName);
+
+    const blobStream = fileUpload.createWriteStream({
+      metadata: {
+        contentType: file.mimetype
+      }
+    });
+
+    blobStream.on('error', (error) => {
+      res.status(500).json({ message: 'Erreur lors de l\'upload', error });
+    });
+
+    blobStream.on('finish', async () => {
+      const url = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+      // Mettre à jour la tâche avec le nouveau fichier
+      await db.collection('tasks').doc(taskId).update({
+        files: admin.firestore.FieldValue.arrayUnion({
+          filename: file.originalname,
+          url: url,
+          uploadedAt: admin.firestore.FieldValue.serverTimestamp()
+        })
+      });
+
+      res.status(200).json({ url });
+    });
+
+    blobStream.end(file.buffer);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
+
+// API pour mettre à jour le progrès d'une tâche
+app.put('/api/tasks/:taskId/progress', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { progress, status, comment } = req.body;
+
+    const taskRef = db.collection('tasks').doc(taskId);
+    const taskDoc = await taskRef.get();
+
+    if (!taskDoc.exists) {
+      return res.status(404).json({ message: 'Tâche non trouvée' });
+    }
+
+    const updateData = {
+      progress: progress,
+      status: status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (comment) {
+      updateData.comments = admin.firestore.FieldValue.arrayUnion({
+        content: comment,
+        userId: req.user.id, // Assumant que vous avez l'authentification
+        timestamp: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+
+    await taskRef.update(updateData);
+    res.status(200).json({ message: 'Tâche mise à jour avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
+
+// API pour obtenir les tâches d'un membre
+app.get('/api/members/:memberId/tasks', async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    const tasksSnapshot = await db.collection('tasks')
+      .where('assignedTo', '==', memberId)
+      .orderBy('deadline')
+      .get();
+
+    const tasks = tasksSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
 
 // Lancer le serveur
 const PORT = 3000;
