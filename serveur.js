@@ -854,7 +854,7 @@ app.get('/api/projects/:projectId', async (req, res) => {
 
 // Ajouter une tâche à un projet
 app.post('/api/tasks', async (req, res) => {
-  const { projectId, taskName, assignedTo, deadline } = req.body;
+  const { projectId, taskName, assignedTo, deadline, status } = req.body;
 
   try {
     const newTask = {
@@ -862,6 +862,7 @@ app.post('/api/tasks', async (req, res) => {
       taskName,
       assignedTo,
       deadline,
+      status,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
     await db.collection('tasks').add(newTask);
@@ -915,152 +916,387 @@ app.put('/api/projects/:projectId/complete', async (req, res) => {
 
 // Ajouter un membre à un projet
 app.post('/api/projects/:projectId/members', async (req, res) => {
-    const { userId } = req.body;  // L'ID de l'utilisateur que tu veux ajouter
-    const { projectId } = req.params;
+  const projectId = req.params.projectId;
+  const { email } = req.body;
 
-    try {
-        // Recherche du projet dans la base de données
-        const project = await Project.findById(projectId);
+  try {
+    const projectRef = db.collection('users').doc(projectId);
+    await projectRef.update({
+      members: admin.firestore.FieldValue.arrayUnion(email),
+    });
 
-        if (!project) {
-            return res.status(404).json({ message: "Projet non trouvé" });
-        }
-
-        // Ajouter l'ID de l'utilisateur au tableau 'members' du projet
-        if (!project.members.includes(userId)) {
-            project.members.push(userId);
-            await project.save();
-            res.status(200).json({ message: 'Membre ajouté avec succès' });
-        } else {
-            res.status(400).json({ message: 'L\'utilisateur est déjà membre' });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
+    res.status(200).send('Membre ajouté avec succès');
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
-// Obtenir les membres d'un projet
-app.get('/api/projects/:projectId/members', async (req, res) => {
-  const { projectId } = req.params;
+// Récupérer les membres disponibles
+app.get('/api/projects/:projectId/members/available', async (req, res) => {
+  const projectId = req.params.projectId;
 
   try {
     const projectDoc = await db.collection('projects').doc(projectId).get();
+    const currentMembers = projectDoc.exists
+      ? projectDoc.data().members || []
+      : [];
+
+    const usersSnapshot = await db.collection('users').get();
+    const availableUsers = usersSnapshot.docs
+      .filter((user) => !currentMembers.includes(user.data().email))
+      .map((user) => ({
+        email: user.data().email,
+        name: user.data().name,
+      }));
+
+    res.status(200).json(availableUsers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erreur lors du chargement des membres' });
+  }
+});
+
+
+// Récupérer les membres d'un projet
+app.get('/api/projects/:projectId/members', async (req, res) => {
+  const projectId = req.params.projectId;
+
+  try {
+    const projectDoc = await db.collection('projects').doc(projectId).get();
+
     if (!projectDoc.exists) {
       return res.status(404).json({ message: 'Projet non trouvé' });
     }
 
     const projectData = projectDoc.data();
-    const members = projectData?.members || [];
+    const membersEmails = projectData.members || [];
 
-    // Récupérer les informations des utilisateurs
-    const userPromises = members.map(async (userId) => {
-      const userDoc = await db.collection('users').doc(userId).get();
-      return userDoc.exists ? userDoc.data() : null;
-    });
+    // Optionnel : récupérer les détails des utilisateurs
+    const usersSnapshot = await db.collection('users').get();
+    const members = usersSnapshot.docs
+      .filter((doc) => membersEmails.includes(doc.data().email))
+      .map((doc) => ({
+        email: doc.data().email,
+        name: doc.data().name,
+      }));
 
-    const usersData = await Promise.all(userPromises);
-
-    res.status(200).json(usersData.filter(Boolean)); // Renvoie les utilisateurs valides
+    res.status(200).json(members);
   } catch (error) {
-    res.status(500).json({ message: 'Erreur lors de la récupération des membres', error });
+    console.error(error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des membres' });
   }
 });
 
-// Récupérer les membres d'un projet
-app.get('/api/projects/:projectId/members', async (req, res) => {
-    const { projectId } = req.params;
-
-    try {
-        // Trouver le projet
-        const project = await Project.findById(projectId).populate('members');
-
-        if (!project) {
-            return res.status(404).json({ message: "Projet non trouvé" });
-        }
-
-        // Récupérer les membres (les utilisateurs sont peuplés via leurs IDs)
-        const members = project.members;  // Ce sont des objets utilisateurs grâce à populate
-        res.status(200).json(members);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Erreur interne du serveur' });
-    }
-});
-
-// API pour uploader des fichiers pour une tâche
-app.post('/api/tasks/:taskId/files', upload.single('file'), async (req, res) => {
+// Middleware de vérification des autorisations
+const checkTaskPermissions = async (req, res, next) => {
   try {
     const { taskId } = req.params;
-    const file = req.file;
+    const userId = req.user.id; // Assumant que l'authentification est en place
 
-    if (!file) {
-      return res.status(400).json({ message: 'Aucun fichier fourni' });
-    }
-
-    const fileName = `tasks/${taskId}/${Date.now()}_${file.originalname}`;
-    const fileUpload = bucket.file(fileName);
-
-    const blobStream = fileUpload.createWriteStream({
-      metadata: {
-        contentType: file.mimetype
-      }
-    });
-
-    blobStream.on('error', (error) => {
-      res.status(500).json({ message: 'Erreur lors de l\'upload', error });
-    });
-
-    blobStream.on('finish', async () => {
-      const url = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-
-      // Mettre à jour la tâche avec le nouveau fichier
-      await db.collection('tasks').doc(taskId).update({
-        files: admin.firestore.FieldValue.arrayUnion({
-          filename: file.originalname,
-          url: url,
-          uploadedAt: admin.firestore.FieldValue.serverTimestamp()
-        })
-      });
-
-      res.status(200).json({ url });
-    });
-
-    blobStream.end(file.buffer);
-  } catch (error) {
-    res.status(500).json({ message: 'Erreur serveur', error });
-  }
-});
-
-// API pour mettre à jour le progrès d'une tâche
-app.put('/api/tasks/:taskId/progress', async (req, res) => {
-  try {
-    const { taskId } = req.params;
-    const { progress, status, comment } = req.body;
-
-    const taskRef = db.collection('tasks').doc(taskId);
-    const taskDoc = await taskRef.get();
+    const taskDoc = await admin.firestore()
+      .collection('tasks')
+      .doc(taskId)
+      .get();
 
     if (!taskDoc.exists) {
       return res.status(404).json({ message: 'Tâche non trouvée' });
     }
 
-    const updateData = {
-      progress: progress,
-      status: status,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    };
+    const taskData = taskDoc.data();
+    req.taskData = taskData;
+    req.isAssignedUser = taskData.assignedTo === userId;
 
-    if (comment) {
-      updateData.comments = admin.firestore.FieldValue.arrayUnion({
-        content: comment,
-        userId: req.user.id, // Assumant que vous avez l'authentification
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+    // Empêcher les modifications si la tâche est terminée
+    if (taskData.status === 'completed' &&
+        (req.method === 'PUT' || req.method === 'POST')) {
+      return res.status(403).json({
+        message: 'Cette tâche est terminée et ne peut plus être modifiée'
       });
     }
 
-    await taskRef.update(updateData);
-    res.status(200).json({ message: 'Tâche mise à jour avec succès' });
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la vérification des permissions', error });
+  }
+};
+
+// Endpoint pour récupérer les détails d'une tâche
+app.get('/api/tasks/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const taskDoc = await admin.firestore()
+      .collection('tasks')
+      .doc(taskId)
+      .get();
+
+    if (!taskDoc.exists) {
+      return res.status(404).json({ message: 'Tâche non trouvée' });
+    }
+
+    const taskData = taskDoc.data();
+
+    // Récupérer les commentaires, améliorations et fichiers associés
+    const [commentsSnap, improvementsSnap] = await Promise.all([
+      admin.firestore().collection(`tasks/${taskId}/comments`).orderBy('timestamp', 'desc').get(),
+      admin.firestore().collection(`tasks/${taskId}/improvements`).orderBy('timestamp', 'desc').get()
+    ]);
+
+    res.status(200).json({
+      id: taskId,
+      ...taskData,
+      comments: commentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+      improvements: improvementsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
+
+// Upload de fichiers (réservé à l'utilisateur assigné)
+app.post('/api/tasks/:taskId/files',
+  checkTaskPermissions,
+  upload.single('file'),
+  async (req, res) => {
+    if (!req.isAssignedUser) {
+      return res.status(403).json({
+        message: 'Seul l\'utilisateur assigné peut uploader des fichiers'
+      });
+    }
+
+    try {
+      const { taskId } = req.params;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ message: 'Aucun fichier fourni' });
+      }
+
+      const fileName = `tasks/${taskId}/${Date.now()}_${file.originalname}`;
+      const fileUpload = admin.storage().bucket().file(fileName);
+
+      const blobStream = fileUpload.createWriteStream({
+        metadata: {
+          contentType: file.mimetype
+        }
+      });
+
+      blobStream.on('error', (error) => {
+        res.status(500).json({ message: 'Erreur lors de l\'upload', error });
+      });
+
+      blobStream.on('finish', async () => {
+        const url = `https://storage.googleapis.com/${fileUpload.bucket.name}/${fileName}`;
+
+        await admin.firestore()
+          .collection('tasks')
+          .doc(taskId)
+          .update({
+            files: admin.firestore.FieldValue.arrayUnion({
+              filename: file.originalname,
+              url: url,
+              uploadedAt: admin.firestore.Timestamp.now(),
+              uploadedBy: req.user.id
+            })
+          });
+
+        res.status(200).json({ url });
+      });
+
+      blobStream.end(file.buffer);
+    } catch (error) {
+      res.status(500).json({ message: 'Erreur serveur', error });
+    }
+});
+
+// Ajout de commentaires (ouvert à tous)
+app.post('/commentsTask', uploadImage.single('image'), async (req, res) => {
+  const { userId, title, content, section, taskId } = req.body; // Ajouter taskId
+  console.log("Received comment data:", req.body);
+
+  try {
+    // Vérifier que taskId est fourni
+    if (!taskId) {
+      return res.status(400).send({ error: "L'ID de la tâche est requis" });
+    }
+
+    // Vérifier l'utilisateur
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) {
+      console.log("User not found:", userId);
+      return res.status(400).send({ error: "Utilisateur non trouvé" });
+    }
+
+    const userData = userDoc.data();
+    console.log("User data found:", userData);
+
+    let imageUrl = null;
+
+    // Si une image est fournie, la télécharger vers Firebase Storage
+    if (req.file) {
+      const fileName = `questions/${Date.now()}_${req.file.originalname}`;
+      const file = bucket.file(fileName);
+
+      await file.save(req.file.buffer, {
+        metadata: {
+          contentType: req.file.mimetype,
+        },
+      });
+
+      // Rendre l'image publique
+      await file.makePublic();
+
+      // Obtenir l'URL de l'image
+      imageUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    }
+
+    // Créer le commentaire avec l'ID de la tâche
+    const docRef = await db.collection("commentairesTaks").add({
+      userId,
+      taskId, // Enregistrer taskId
+      title,
+      content,
+      section,
+      imageUrl,
+      userRole: userData.role || 'student',
+      userEmail: userData.email,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log("Comment created with ID:", docRef.id);
+    res.status(200).send({ id: docRef.id, imageUrl });
+
+  } catch (error) {
+    console.error("Server error:", error);
+    res.status(500).send({ error: "Erreur serveur", details: error.message });
+  }
+});
+
+
+// Gardez la route GET /questions comme elle est
+app.get('/commentsTask', async (req, res) => {
+  try {
+    const { taskId } = req.query;
+
+    if (!taskId) {
+      return res.status(400).send({ error: "Le paramètre 'taskId' est requis." });
+    }
+
+    const snapshot = await db.collection("commentairesTask")
+      .where("taskId", "==", taskId) // Filtrer par l'ID de la tâche
+      .orderBy("createdAt", "desc")
+      .get();
+
+    const comments = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      userRole: doc.data().userRole || 'inconnu',
+      userEmail: doc.data().userEmail || 'Anonyme'
+    }));
+
+    console.log("Returning comments for taskId:", taskId, comments);
+    res.status(200).send(comments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).send({ error: "Erreur serveur" });
+  }
+});
+
+
+// Ajout de points d'amélioration (non assignés uniquement)
+app.post('/api/tasks/:taskId/improvements', checkTaskPermissions, async (req, res) => {
+  if (req.isAssignedUser) {
+    return res.status(403).json({
+      message: 'L\'utilisateur assigné ne peut pas ajouter de points d\'amélioration'
+    });
+  }
+
+  try {
+    const { taskId } = req.params;
+    const { content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({ message: 'Le contenu est requis' });
+    }
+
+    const improvementRef = await admin.firestore()
+      .collection(`tasks/${taskId}/improvements`)
+      .add({
+        content,
+        userId: req.user.id,
+        userName: req.user.name,
+        timestamp: admin.firestore.Timestamp.now()
+      });
+
+    res.status(200).json({
+      id: improvementRef.id,
+      message: 'Point d\'amélioration ajouté avec succès'
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
+
+// Mise à jour du progrès (utilisateur assigné uniquement)
+app.put('/api/tasks/:taskId/progress', checkTaskPermissions, async (req, res) => {
+  if (!req.isAssignedUser) {
+    return res.status(403).json({
+      message: 'Seul l\'utilisateur assigné peut mettre à jour le progrès'
+    });
+  }
+
+  try {
+    const { taskId } = req.params;
+    const { progress, comment } = req.body;
+
+    const updateData = {
+      progress: progress,
+      updatedAt: admin.firestore.Timestamp.now()
+    };
+
+    if (comment) {
+      await admin.firestore()
+        .collection(`tasks/${taskId}/comments`)
+        .add({
+          content: comment,
+          userId: req.user.id,
+          userName: req.user.name,
+          timestamp: admin.firestore.Timestamp.now(),
+          type: 'progress_update'
+        });
+    }
+
+    await admin.firestore()
+      .collection('tasks')
+      .doc(taskId)
+      .update(updateData);
+
+    res.status(200).json({ message: 'Progrès mis à jour avec succès' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur', error });
+  }
+});
+
+// Marquer comme terminé (utilisateur assigné uniquement)
+app.put('/api/tasks/:taskId/complete', checkTaskPermissions, async (req, res) => {
+  if (!req.isAssignedUser) {
+    return res.status(403).json({
+      message: 'Seul l\'utilisateur assigné peut marquer la tâche comme terminée'
+    });
+  }
+
+  try {
+    const { taskId } = req.params;
+
+    await admin.firestore()
+      .collection('tasks')
+      .doc(taskId)
+      .update({
+        status: 'completed',
+        completedAt: admin.firestore.Timestamp.now(),
+        completedBy: req.user.id
+      });
+
+    res.status(200).json({ message: 'Tâche marquée comme terminée' });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur', error });
   }
