@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:isibappmoodle/reutilisable/app_drawer.dart';
 import 'package:intl/intl.dart'; // Pour formater la date
+import 'package:isibappmoodle/config/config';
 
 class AddProjectPage extends StatefulWidget {
   const AddProjectPage({super.key});
@@ -22,7 +23,7 @@ class _AddProjectPageState extends State<AddProjectPage> {
 
     if (name.isNotEmpty && deadline.isNotEmpty) {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/projects'),
+        Uri.parse('${Config.sander}/api/projects'),
         headers: {'Content-Type': 'application/json'},
         body: '{"name": "$name", "deadline": "$deadline"}',
       );

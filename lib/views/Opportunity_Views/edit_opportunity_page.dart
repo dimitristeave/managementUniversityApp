@@ -9,7 +9,8 @@ class EditOpportunityPage extends StatefulWidget {
   final Work work;
   final String uid;
 
-  EditOpportunityPage({
+  const EditOpportunityPage({
+    super.key,
     required this.work,
     required this.uid,
   });
@@ -72,8 +73,8 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opportunité mise à jour avec succès!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Opportunité mise à jour avec succès!')));
         Navigator.pop(context, true);
       } else {
         throw Exception('Erreur lors de la mise à jour.');
@@ -87,7 +88,7 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Modifier une opportunité')),
+      appBar: AppBar(title: const Text('Modifier une opportunité')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -97,7 +98,7 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
               // Champ pour l'entreprise
               TextFormField(
                 initialValue: company,
-                decoration: InputDecoration(labelText: 'Entreprise'),
+                decoration: const InputDecoration(labelText: 'Entreprise'),
                 onChanged: (value) => company = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -109,7 +110,7 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
               // Champ pour la section avec la sélection initiale
               DropdownButtonFormField(
                 value: section, // Définir la valeur initiale
-                decoration: InputDecoration(labelText: 'Section'),
+                decoration: const InputDecoration(labelText: 'Section'),
                 menuMaxHeight: 300, // Limite la hauteur du menu déroulant
                 items: sectionsItems
                     .map((sec) => DropdownMenuItem(
@@ -132,7 +133,7 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
               // Champ pour l'adresse
               TextFormField(
                 initialValue: address,
-                decoration: InputDecoration(labelText: 'Adresse'),
+                decoration: const InputDecoration(labelText: 'Adresse'),
                 onChanged: (value) => address = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -144,7 +145,7 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
               // Champ pour la description
               TextFormField(
                 initialValue: description,
-                decoration: InputDecoration(labelText: 'Description'),
+                decoration: const InputDecoration(labelText: 'Description'),
                 onChanged: (value) => description = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -156,18 +157,18 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
               // Champ pour le lien
               TextFormField(
                 initialValue: link,
-                decoration: InputDecoration(labelText: 'Lien'),
+                decoration: const InputDecoration(labelText: 'Lien'),
                 onChanged: (value) => link = value,
               ),
               // Champ pour le type avec la sélection initiale
               DropdownButtonFormField(
                 value: type, // Définir la valeur initiale
-                items: [
+                items: const [
                   DropdownMenuItem(value: 'Stage', child: Text("Stage")),
                   DropdownMenuItem(
                       value: 'Offre d\'emploi', child: Text("Offre d'emploi"))
                 ],
-                decoration: InputDecoration(labelText: 'Type'),
+                decoration: const InputDecoration(labelText: 'Type'),
                 onChanged: (value) {
                   setState(() {
                     type = value!;
@@ -181,14 +182,14 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
                 },
               ),
               // Bouton pour mettre à jour
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState?.validate() ?? false) {
                     updateWork();
                   }
                 },
-                child: Text('Mettre à jour'),
+                child: const Text('Mettre à jour'),
               ),
             ],
           ),

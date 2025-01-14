@@ -11,6 +11,8 @@ import 'package:isibappmoodle/views/home_share_file_view.dart';
 import 'package:isibappmoodle/views/Opportunity_Views/opportunity_page.dart';
 import 'package:isibappmoodle/views/project_management.dart';
 import 'package:isibappmoodle/views/suivi_view';
+import 'package:isibappmoodle/views/add_project_member_page.dart';
+import 'package:isibappmoodle/views/task_detail_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +22,7 @@ void main() async {
   FirebaseAPI firebaseAPI = FirebaseAPI();
   firebaseAPI.initializeAwesomeNotifications();
   await firebaseAPI.initNotifications();
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -36,12 +38,12 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home:
-          AuthChecker(), // Vérifier l'état de la connexion avant de montrer une page
+          const AuthChecker(), // Vérifier l'état de la connexion avant de montrer une page
       routes: {
         '/auth': (context) => AuthPage(),
         '/home': (context) => HomeShareFile(),
         '/opportunity': (context) => OpportunityPage(),
-        '/project_management': (context) => ProjectManagementPage(),
+        '/project_management': (context) => const ProjectManagementPage(),
         '/help': (context) => ForumPage(),
         '/profil': (context) => ProfilePage(),
         '/assistance': (context) => AssistancePage(),
@@ -68,7 +70,7 @@ class AuthChecker extends StatelessWidget {
       future: _getUser(), // Vérifier si l'utilisateur est connecté
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+          return const Scaffold(
             body: Center(
                 child:
                     CircularProgressIndicator()), // Afficher un chargement pendant la vérification

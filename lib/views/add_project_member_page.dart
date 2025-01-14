@@ -1,12 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:isibappmoodle/views/notification_service.dart';
+import 'package:isibappmoodle/config/config';
 
 class AddProjectMemberPage extends StatefulWidget {
   final String projectId;
 
-  const AddProjectMemberPage({Key? key, required this.projectId})
-      : super(key: key);
+  const AddProjectMemberPage({super.key, required this.projectId});
 
   @override
   _AddProjectMemberPageState createState() => _AddProjectMemberPageState();
@@ -15,38 +16,62 @@ class AddProjectMemberPage extends StatefulWidget {
 class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
   bool _isLoading = false;
   List<Map<String, dynamic>> _availableMembers = [];
-  String? _selectedMemberId;
+  String? _selectedEmail;
+  String? _projectName;
 
   @override
   void initState() {
     super.initState();
+    _loadProjectData();
     _loadAvailableMembers();
+  }
+
+  Future<void> _loadProjectData() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${Config.sander}/api/projects/${widget.projectId}'),
+      );
+      if (response.statusCode == 200) {
+        final projectData = json.decode(response.body);
+        setState(() {
+          _projectName = projectData['name'];
+        });
+      }
+    } catch (e) {
+      print('Erreur lors du chargement du projet: $e');
+    }
   }
 
   Future<void> _loadAvailableMembers() async {
     setState(() => _isLoading = true);
     try {
-      // Charger la liste des membres disponibles
       final response = await http.get(
         Uri.parse(
-            'http://10.0.2.2:3000/api/members/available/${widget.projectId}'),
+            '${Config.sander}/projects/${widget.projectId}/members/available'),
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+        final List members = json.decode(response.body);
         setState(() {
-          _availableMembers = List<Map<String, dynamic>>.from(data);
+          _availableMembers = members
+              .map((member) => {
+                    'email': member['email'],
+                    'name': member['name'] ?? member['email'] ?? 'Sans nom',
+                  })
+              .toList();
         });
+      } else {
+        throw Exception('Échec du chargement des membres disponibles');
       }
     } catch (e) {
-      _showErrorMessage('Erreur lors du chargement des membres: $e');
+      _showErrorMessage('Erreur: $e');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
   Future<void> _addMemberToProject() async {
-    if (_selectedMemberId == null) {
+    if (_selectedEmail == null) {
       _showErrorMessage('Veuillez sélectionner un membre');
       return;
     }
@@ -54,27 +79,34 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse(
-            'http://10.0.2.2:3000/api/projects/${widget.projectId}/members'),
+        Uri.parse('${Config.sander}/api/projects/${widget.projectId}/members'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'memberId': _selectedMemberId,
-        }),
+        body: json.encode({'email': _selectedEmail}),
       );
 
       if (response.statusCode == 200) {
-        if (!mounted) return;
-        Navigator.pop(context, true);
+        // Récupérer le nom du projet
+        final projectResponse = await http.get(
+          Uri.parse('${Config.sander}/api/projects/${widget.projectId}'),
+        );
+
+        if (projectResponse.statusCode == 200) {
+          final projectData = json.decode(projectResponse.body);
+          await NotificationService.showProjectInviteNotification(
+            projectName: projectData['name'],
+            userEmail: _selectedEmail!,
+          );
+        }
+
         _showSuccessMessage('Membre ajouté avec succès');
+        Navigator.pop(context, true);
       } else {
         throw Exception('Échec de l\'ajout du membre');
       }
     } catch (e) {
-      _showErrorMessage('Erreur lors de l\'ajout du membre: $e');
+      _showErrorMessage('Erreur: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      setState(() => _isLoading = false);
     }
   }
 
@@ -130,17 +162,16 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
                                 labelText: 'Membre',
                                 border: OutlineInputBorder(),
                               ),
-                              value: _selectedMemberId,
+                              value: _selectedEmail,
                               items: _availableMembers.map((member) {
                                 return DropdownMenuItem<String>(
-                                  value: member['id'],
-                                  child: Text(
-                                      '${member['name']} (${member['email']})'),
+                                  value: member['email'],
+                                  child: Text(member['email']),
                                 );
                               }).toList(),
                               onChanged: (value) {
                                 setState(() {
-                                  _selectedMemberId = value;
+                                  _selectedEmail = value;
                                 });
                               },
                             ),
@@ -151,7 +182,7 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed:
-                        _selectedMemberId != null ? _addMemberToProject : null,
+                        _selectedEmail != null ? _addMemberToProject : null,
                     child: const Text('Ajouter au projet'),
                   ),
                 ],

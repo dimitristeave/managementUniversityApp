@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:isibappmoodle/reutilisable/app_drawer.dart';
 import 'package:isibappmoodle/views/add_project_page.dart';
 import 'package:isibappmoodle/views/project_details_page.dart';
+import 'package:isibappmoodle/config/config';
 
 class ProjectManagementPage extends StatefulWidget {
   const ProjectManagementPage({super.key});
@@ -17,8 +18,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
   List<dynamic> completedProjects = [];
 
   Future<void> fetchProjects() async {
-    final response =
-        await http.get(Uri.parse('http://10.0.2.2:3000/api/projects'));
+    final response = await http.get(Uri.parse('${Config.sander}/api/projects'));
 
     if (response.statusCode == 200) {
       final List<dynamic> projects = json.decode(response.body);
@@ -46,7 +46,7 @@ class _ProjectManagementPageState extends State<ProjectManagementPage> {
     return Scaffold(
       drawer: AppDrawer(),
       appBar: AppBar(
-        title: Text('Gestion de Projet'),
+        title: const Text('Gestion de Projet'),
       ),
       body: ongoingProjects.isEmpty && completedProjects.isEmpty
           ? const Center(child: CircularProgressIndicator())

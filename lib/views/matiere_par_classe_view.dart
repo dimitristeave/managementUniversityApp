@@ -8,7 +8,8 @@ class SubjectsPage extends StatefulWidget {
   final String className;
   final String filiere;
 
-  SubjectsPage({required this.className, required this.filiere});
+  const SubjectsPage(
+      {super.key, required this.className, required this.filiere});
 
   @override
   _SubjectsPageState createState() => _SubjectsPageState();
@@ -26,7 +27,7 @@ class _SubjectsPageState extends State<SubjectsPage> {
   }
 
   Future<void> fetchSubjects() async {
-    final String apiUrl =
+    const String apiUrl =
         "${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
     try {
       final response = await http.get(Uri.parse(
@@ -59,16 +60,16 @@ class _SubjectsPageState extends State<SubjectsPage> {
         title: Text('${widget.className} - Matières'),
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : hasError
-              ? Center(
+              ? const Center(
                   child: Text(
                     "Erreur lors du chargement des matières.",
                     style: TextStyle(color: Colors.red),
                   ),
                 )
               : subjects.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Text(
                         "Aucune matière trouvée pour cette classe.",
                         style: TextStyle(fontSize: 16),

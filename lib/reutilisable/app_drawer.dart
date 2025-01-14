@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class AppDrawer extends StatelessWidget {
+  const AppDrawer({super.key});
+
   Future<void> _logout(BuildContext context) async {
     try {
       // Déconnexion de l'utilisateur via Firebase
@@ -23,7 +25,7 @@ class AppDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          DrawerHeader(
+          const DrawerHeader(
             decoration: BoxDecoration(
               color: Colors.blue,
             ),
@@ -35,67 +37,65 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ),
-
           ListTile(
-            leading: Icon(Icons.person),
-            title: Text('Profil'),
+            leading: const Icon(Icons.person),
+            title: const Text('Profil'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/profil');
             },
           ),
           ListTile(
-            leading: Icon(Icons.home),
-            title: Text('Accueil'),
+            leading: const Icon(Icons.home),
+            title: const Text('Accueil'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/home');
             },
           ),
           ListTile(
-            leading: Icon(Icons.work),
-            title: Text('Opportunité'),
+            leading: const Icon(Icons.work),
+            title: const Text('Opportunité'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/opportunity');
             },
           ),
           ListTile(
-            leading: Icon(Icons.task),
-            title: Text('Gestion de Projet'),
+            leading: const Icon(Icons.task),
+            title: const Text('Gestion de Projet'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/project_management');
             },
           ),
           ListTile(
-            leading: Icon(Icons.question_answer),
-            title: Text('Ecole Forum'),
+            leading: const Icon(Icons.question_answer),
+            title: const Text('Ecole Forum'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/help');
             },
           ),
           ListTile(
-            leading: Icon(Icons.network_cell),
-            title: Text('Demander Assistance'),
+            leading: const Icon(Icons.network_cell),
+            title: const Text('Demander Assistance'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/assistance');
             },
           ),
-          
           ListTile(
-            leading: Icon(Icons.network_cell),
-            title: Text('Suivi Mes Demandes'),
+            leading: const Icon(Icons.network_cell),
+            title: const Text('Suivi Mes Demandes'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/suivi');
             },
           ),
           ListTile(
-            leading: Icon(Icons.network_cell),
-            title: Text('Demandes reçues'),
+            leading: const Icon(Icons.network_cell),
+            title: const Text('Demandes reçues'),
             onTap: () {
               Navigator.pushReplacementNamed(context, '/my_demands');
             },
           ),
           ListTile(
-            leading: Icon(Icons.logout),
-            title: Text('Se déconnecter'),
+            leading: const Icon(Icons.logout),
+            title: const Text('Se déconnecter'),
             onTap: () async {
               await _logout(context);
             },

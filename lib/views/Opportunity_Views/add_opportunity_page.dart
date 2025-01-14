@@ -6,7 +6,7 @@ import 'package:isibappmoodle/config/config';
 class AddOpportunityPage extends StatefulWidget {
   final String uid;
 
-  AddOpportunityPage({required this.uid});
+  const AddOpportunityPage({super.key, required this.uid});
 
   @override
   _AddOpportunityPageState createState() => _AddOpportunityPageState();
@@ -43,7 +43,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
 
   // Fonction pour envoyer les données au backend
   Future<void> addWork() async {
-    final String apiUrl = "${Config.sander}/works"; // URL de ton backend
+    const String apiUrl = "${Config.sander}/works"; // URL de ton backend
 
     try {
       final response = await http.post(
@@ -67,7 +67,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
           errorMessage = '';
         });
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opportunité ajoutée avec succès!')));
+            const SnackBar(content: Text('Opportunité ajoutée avec succès!')));
         Navigator.pop(context, true); // Retour à la page précédente
       } else {
         setState(() {
@@ -87,9 +87,9 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Ajouter une opportunité'),
+        title: const Text('Ajouter une opportunité'),
         leading: IconButton(
-          icon: Icon(
+          icon: const Icon(
               Icons.arrow_back), // Flèche pour revenir à la page précédente
           onPressed: () {
             Navigator.pop(context); // Retourner à la page Opportunity
@@ -104,7 +104,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextFormField(
-                decoration: InputDecoration(labelText: 'Entreprise'),
+                decoration: const InputDecoration(labelText: 'Entreprise'),
                 onChanged: (value) {
                   setState(() {
                     company = value;
@@ -118,12 +118,12 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
               ),
               DropdownButtonFormField(
-                items: [
+                items: const [
                   DropdownMenuItem(value: 'Stage', child: Text("stage")),
                   DropdownMenuItem(
                       value: 'Offre d\'emploi', child: Text("Offre d'emploi"))
                 ],
-                decoration: InputDecoration(labelText: 'Type'),
+                decoration: const InputDecoration(labelText: 'Type'),
                 onChanged: (value) {
                   setState(() {
                     type = value!;
@@ -137,7 +137,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
               ),
               DropdownButtonFormField(
-                decoration: InputDecoration(labelText: 'Section'),
+                decoration: const InputDecoration(labelText: 'Section'),
                 menuMaxHeight:
                     300, // Limite la hauteur du menu déroulant à 200 pixels
                 items: sectionsItems
@@ -159,7 +159,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Ville'),
+                decoration: const InputDecoration(labelText: 'Ville'),
                 onChanged: (value) {
                   setState(() {
                     address = value;
@@ -173,7 +173,7 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Description'),
+                decoration: const InputDecoration(labelText: 'Description'),
                 onChanged: (value) {
                   setState(() {
                     description = value;
@@ -187,20 +187,20 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Lien'),
+                decoration: const InputDecoration(labelText: 'Lien'),
                 onChanged: (value) {
                   setState(() {
                     link = value;
                   });
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               if (errorMessage.isNotEmpty)
                 Text(
                   errorMessage,
-                  style: TextStyle(color: Colors.red),
+                  style: const TextStyle(color: Colors.red),
                 ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: isSubmitting
                     ? null
@@ -213,8 +213,8 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                         }
                       },
                 child: isSubmitting
-                    ? CircularProgressIndicator()
-                    : Text('Ajouter l\'opportunité'),
+                    ? const CircularProgressIndicator()
+                    : const Text('Ajouter l\'opportunité'),
               ),
             ],
           ),

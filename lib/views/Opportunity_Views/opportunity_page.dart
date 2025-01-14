@@ -11,6 +11,8 @@ import 'package:isibappmoodle/views/Opportunity_Views/add_opportunity_page.dart'
 import 'package:isibappmoodle/views/Opportunity_Views/edit_opportunity_page.dart'; // Import de la page d'édition
 
 class OpportunityPage extends StatefulWidget {
+  const OpportunityPage({super.key});
+
   @override
   _OpportunityPageState createState() => _OpportunityPageState();
 }
@@ -81,7 +83,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
 
   // Fonction pour récupérer les opportunités depuis le serveur
   Future<void> fetchWorks() async {
-    final String apiUrl = "${Config.sander}/works";
+    const String apiUrl = "${Config.sander}/works";
     print(apiUrl);
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -136,8 +138,8 @@ class _OpportunityPageState extends State<OpportunityPage> {
         setState(() {
           works.removeWhere((work) => work.id == workId);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opportunité supprimée avec succès.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Opportunité supprimée avec succès.')));
       } else {
         throw Exception('Erreur lors de la suppression.');
       }
@@ -188,7 +190,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setStateDialog) {
             return AlertDialog(
-              title: Text("Choisissez les sections"),
+              title: const Text("Choisissez les sections"),
               content: SingleChildScrollView(
                 child: Column(
                   children: sectionsItems.skip(1).map((section) {
@@ -209,7 +211,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text("Annuler"),
+                  child: const Text("Annuler"),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -217,7 +219,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                     await _saveUserNotificationPreferences(selectedSections);
                     Navigator.pop(context);
                   },
-                  child: Text("Enregistrer"),
+                  child: const Text("Enregistrer"),
                 ),
               ],
             );
@@ -234,7 +236,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
         .map((e) => e.key);
 
     // Appel backend pour sauvegarder
-    final String apiUrl = "${Config.sander}/preferences";
+    const String apiUrl = "${Config.sander}/preferences";
     final userId = await getUserId();
 
     final body = json.encode({
@@ -303,10 +305,10 @@ class _OpportunityPageState extends State<OpportunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Opportunités'),
+        title: const Text('Opportunités'),
         actions: [
           IconButton(
-              icon: Icon(Icons.add),
+              icon: const Icon(Icons.add),
               onPressed: () async {
                 final userId =
                     await getUserId(); // Appel de la fonction pour obtenir l'UID
@@ -321,14 +323,14 @@ class _OpportunityPageState extends State<OpportunityPage> {
                 }
               }),
           IconButton(
-            icon: Icon(Icons.notifications),
+            icon: const Icon(Icons.notifications),
             onPressed: _showSectionSelectionDialog,
           ),
         ],
       ),
       drawer: AppDrawer(),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : errorMessage.isNotEmpty
               ? Center(child: Text(errorMessage))
               : works.isEmpty
@@ -336,14 +338,14 @@ class _OpportunityPageState extends State<OpportunityPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
+                          const Text(
                             'Pas d\'opportunité pour le moment',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () async {
                               final userId =
@@ -359,7 +361,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                                 fetchWorks(); // Recharge les données après l'ajout
                               }
                             },
-                            child: Text('Ajouter une opportunité'),
+                            child: const Text('Ajouter une opportunité'),
                           ),
                         ],
                       ),
@@ -369,15 +371,15 @@ class _OpportunityPageState extends State<OpportunityPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           TextField(
                             decoration: InputDecoration(
                               labelText: 'Rechercher par nom',
-                              prefixIcon: Icon(Icons.search),
+                              prefixIcon: const Icon(Icons.search),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                   vertical: 10.0, horizontal: 16.0),
                             ),
                             onChanged: (value) {
@@ -387,7 +389,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                               filterWorks();
                             },
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           DropdownButtonFormField(
                             value: selectedSection,
                             items: sectionsItems
@@ -401,7 +403,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
-                              contentPadding: EdgeInsets.symmetric(
+                              contentPadding: const EdgeInsets.symmetric(
                                   vertical: 8.0, horizontal: 16.0),
                             ),
                             isExpanded: true,
@@ -413,7 +415,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                             },
                             menuMaxHeight: 300,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Expanded(
                             child: ListView.builder(
                               itemCount: filteredWorks.length,
@@ -426,7 +428,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                                   child: ListTile(
                                     title: Text(
                                       work.company,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           color: Colors.black,
                                           fontWeight: FontWeight.bold),
                                     ),
@@ -463,10 +465,10 @@ class _OpportunityPageState extends State<OpportunityPage> {
                                         }
                                       },
                                       itemBuilder: (context) => [
-                                        PopupMenuItem(
+                                        const PopupMenuItem(
                                             value: 'Modifier',
                                             child: Text('Modifier')),
-                                        PopupMenuItem(
+                                        const PopupMenuItem(
                                             value: 'Supprimer',
                                             child: Text('Supprimer')),
                                       ],

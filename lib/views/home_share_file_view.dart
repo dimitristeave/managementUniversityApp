@@ -25,12 +25,14 @@ class HomeShareFile extends StatelessWidget {
     "Electricité"
   ];
 
+  HomeShareFile({super.key});
+
   void showFilieresDialog(BuildContext context, String className) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Choisissez une filière"),
+          title: const Text("Choisissez une filière"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: filieres.map((filiere) {
@@ -61,10 +63,10 @@ class HomeShareFile extends StatelessWidget {
     return Scaffold(
       drawer: AppDrawer(),
       appBar: AppBar(
-        title: Text('ShareFile - Accueil'),
+        title: const Text('ShareFile - Accueil'),
         actions: [
           IconButton(
-            icon: Icon(Icons.add),
+            icon: const Icon(Icons.add),
             tooltip: 'Ajouter une matière',
             onPressed: () {
               Navigator.push(
@@ -81,7 +83,7 @@ class HomeShareFile extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2, // Nombre de colonnes
             crossAxisSpacing: 16, // Espace entre colonnes
             mainAxisSpacing: 16, // Espace entre les rangées
@@ -113,7 +115,7 @@ class HomeShareFile extends StatelessWidget {
                 child: Center(
                   child: Text(
                     classes[index],
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),

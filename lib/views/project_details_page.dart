@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:isibappmoodle/reutilisable/app_drawer.dart';
+import 'package:isibappmoodle/views/add_project_member_page.dart';
+import 'package:isibappmoodle/views/task_detail_page.dart';
+import 'package:isibappmoodle/views/notification_service.dart';
+import 'package:isibappmoodle/config/config';
 
 class ProjectDetailsPage extends StatefulWidget {
   final String projectId;
@@ -18,6 +23,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   final TextEditingController _assignedToController = TextEditingController();
   final TextEditingController _taskDeadlineController = TextEditingController();
   final TextEditingController _newMemberController = TextEditingController();
+  String? _selectedMemberId;
   Map<String, dynamic>? _projectData;
   bool _isLoading = false;
   List<dynamic> _members = [];
@@ -33,7 +39,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     setState(() => _isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:3000/api/projects/${widget.projectId}'),
+        Uri.parse('${Config.sander}/api/projects/${widget.projectId}'),
       );
       if (response.statusCode == 200) {
         setState(() {
@@ -52,8 +58,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   Future<void> _loadProjectMembers() async {
     try {
       final response = await http.get(
-        Uri.parse(
-            'http://10.0.2.2:3000/api/projects/${widget.projectId}/members'),
+        Uri.parse('${Config.sander}/api/projects/${widget.projectId}/members'),
       );
       if (response.statusCode == 200) {
         setState(() {
@@ -68,18 +73,21 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   }
 
   Future<void> _addTask() async {
+    _assignedToController.text = _selectedMemberId ?? '';
+
     if (!_validateTaskInputs()) return;
 
     setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/tasks'),
+        Uri.parse('${Config.sander}/api/tasks'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'projectId': widget.projectId,
           'taskName': _taskController.text,
-          'assignedTo': _assignedToController.text,
+          'assignedTo': _selectedMemberId,
           'deadline': _taskDeadlineController.text,
+          'status': 'En cours',
         }),
       );
 
@@ -107,7 +115,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     try {
       final response = await http.post(
         Uri.parse(
-            'http://10.0.2.2:3000/api/projects/${widget.projectId}/addMember'),
+            '${Config.sander}/api/projects/${widget.projectId}/addMember'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'name': _newMemberController.text,
@@ -132,8 +140,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     setState(() => _isLoading = true);
     try {
       final response = await http.put(
-        Uri.parse(
-            'http://10.0.2.2:3000/api/projects/${widget.projectId}/status'),
+        Uri.parse('${Config.sander}/api/projects/${widget.projectId}/status'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'status': newStatus}),
       );
@@ -221,6 +228,21 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                     ],
                   ),
                 ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  AddProjectMemberPage(projectId: widget.projectId),
+            ),
+          );
+          if (result == true) {
+            _loadProjectMembers(); // Recharger la liste des membres
+          }
+        },
+        child: const Icon(Icons.person_add),
+      ),
     );
   }
 
@@ -273,12 +295,24 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _assignedToController,
+            DropdownButtonFormField<String>(
               decoration: const InputDecoration(
                 labelText: 'Assigné à',
                 border: OutlineInputBorder(),
               ),
+              value: _selectedMemberId,
+              items: _members.map((member) {
+                return DropdownMenuItem<String>(
+                  value: member['email'],
+                  child: Text(member['email']),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedMemberId = value;
+                  _assignedToController.text = value ?? '';
+                });
+              },
             ),
             const SizedBox(height: 16),
             TextField(
@@ -307,7 +341,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
 
   Widget _buildTasksList() {
     final tasks = _projectData?['tasks'] as List? ?? [];
-
+    final currentUser = FirebaseAuth.instance.currentUser;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -317,10 +351,13 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         ),
         const SizedBox(height: 8),
         ...tasks.map((task) {
-          final taskName = task['name'];
-          final deadline = task['deadline'];
-          final assignedTo = task['assignedTo'];
-          final status = task['status'];
+          final taskName = task['taskName'] ?? 'Sans nom';
+          final deadline = task['deadline'] ?? 'Non définie';
+          final assignedTo = task['assignedTo'] ?? 'Non assigné';
+          final status = task['status'] ?? 'En cours';
+          final taskId =
+              task['id'] ?? ''; // Assurez-vous que 'id' existe dans la réponse
+
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -332,6 +369,23 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                   Text('Assigné à: $assignedTo'),
                   Text('Deadline: $deadline'),
                   Text('Statut: $status'),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Navigation vers la page TaskDetailPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TaskDetailPage(
+                            taskId: taskId,
+                            memberId: assignedTo,
+                            currentUserId: currentUser?.uid ?? '',
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Voir les détails'),
+                  ),
                 ],
               ),
             ),
@@ -351,14 +405,14 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         ),
         const SizedBox(height: 8),
         ..._members.map((member) {
-          final name = member['name'];
+          final email = member['email'];
           return Card(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text(name),
+              child: Text(email),
             ),
           );
-        }).toList(),
+        }),
       ],
     );
   }

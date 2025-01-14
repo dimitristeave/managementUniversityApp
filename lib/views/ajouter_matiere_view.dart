@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:isibappmoodle/config/config';
 
 class AddSubjectForm extends StatefulWidget {
+  const AddSubjectForm({super.key});
+
   @override
   _AddSubjectFormState createState() => _AddSubjectFormState();
 }
@@ -71,13 +73,12 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
           Uri.parse("${Config.sander}/addSubject"), // URL de l'API
           headers: {"Content-Type": "application/json"},
           body: json.encode(data),
-          
         );
         print(data);
 
         if (response.statusCode == 200) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Matière ajoutée avec succès !")),
+            const SnackBar(content: Text("Matière ajoutée avec succès !")),
           );
           // Réinitialiser le formulaire
           _formKey.currentState!.reset();
@@ -87,13 +88,14 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
           });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Erreur lors de l'ajout : ${response.body}")),
+            SnackBar(
+                content: Text("Erreur lors de l'ajout : ${response.body}")),
           );
         }
       } catch (e) {
         print("Erreur lors de l'envoi : $e");
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Échec de la connexion au serveur.")),
+          const SnackBar(content: Text("Échec de la connexion au serveur.")),
         );
       }
     }
@@ -103,7 +105,7 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Ajouter une Matière"),
+        title: const Text("Ajouter une Matière"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -115,7 +117,7 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
               children: [
                 // Dropdown pour la classe
                 DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: "Classe",
                     border: OutlineInputBorder(),
                   ),
@@ -134,11 +136,11 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
                   validator: (value) =>
                       value == null ? "Veuillez choisir une classe" : null,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Dropdown pour la filière
                 DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: "Filière",
                     //border: OutlineInputBorder(),
                   ),
@@ -157,56 +159,53 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
                   validator: (value) =>
                       value == null ? "Veuillez choisir une filière" : null,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Champ pour le nom de la matière
                 TextFormField(
                   controller: subjectNameController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: "Nom de la matière",
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      value == null || value.isEmpty
-                          ? "Veuillez entrer un nom de matière"
-                          : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? "Veuillez entrer un nom de matière"
+                      : null,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Champ pour l id de la matiere
                 TextFormField(
                   controller: subjectIdController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: "ID de la matiere",
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      value == null || value.isEmpty
-                          ? "Veuillez entrer l'ID de la matiere"
-                          : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? "Veuillez entrer l'ID de la matiere"
+                      : null,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 // Champ pour le nom du professeur
                 TextFormField(
                   controller: professorNameController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: "Nom du professeur",
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) =>
-                      value == null || value.isEmpty
-                          ? "Veuillez entrer un nom de professeur"
-                          : null,
+                  validator: (value) => value == null || value.isEmpty
+                      ? "Veuillez entrer un nom de professeur"
+                      : null,
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 // Bouton de soumission
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: submitForm,
-                    child: Text("Ajouter"),
+                    child: const Text("Ajouter"),
                   ),
                 ),
               ],

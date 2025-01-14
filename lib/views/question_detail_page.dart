@@ -8,7 +8,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 class QuestionDetailPage extends StatefulWidget {
   final Map<String, dynamic> question;
 
-  QuestionDetailPage({required this.question});
+  const QuestionDetailPage({super.key, required this.question});
 
   @override
   _QuestionDetailPageState createState() => _QuestionDetailPageState();
@@ -26,13 +26,11 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
     fetchAnswers();
   }
 
-
-
-
   Future<void> updateAnswer(String answerId, String newContent) async {
     try {
       final response = await http.put(
-        Uri.parse('${Config.sander}/questions/${widget.question['id']}/answers/$answerId'),
+        Uri.parse(
+            '${Config.sander}/questions/${widget.question['id']}/answers/$answerId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'content': newContent}),
       );
@@ -40,26 +38,27 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
       if (response.statusCode == 200) {
         fetchAnswers();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Réponse modifiée avec succès')),
+          const SnackBar(content: Text('Réponse modifiée avec succès')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la modification de la réponse')),
+          const SnackBar(
+              content: Text('Erreur lors de la modification de la réponse')),
         );
       }
     } catch (error) {
       print("Erreur lors de la modification: $error");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Une erreur est survenue')),
+        const SnackBar(content: Text('Une erreur est survenue')),
       );
     }
   }
 
-
   Future<void> fetchAnswers() async {
     try {
       final response = await http.get(
-        Uri.parse('${Config.sander}/questions/${widget.question['id']}/answers'),
+        Uri.parse(
+            '${Config.sander}/questions/${widget.question['id']}/answers'),
       );
 
       if (response.statusCode == 200) {
@@ -120,8 +119,8 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
   Future<void> rateAnswer(String answerId, double rating) async {
     try {
       final response = await http.post(
-        Uri.parse('${Config.sander}/questions/${widget
-            .question['id']}/answers/$answerId/rate'),
+        Uri.parse(
+            '${Config.sander}/questions/${widget.question['id']}/answers/$answerId/rate'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'userId': _auth.currentUser?.uid,
@@ -140,31 +139,31 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
   Future<void> deleteAnswer(String answerId) async {
     try {
       final response = await http.delete(
-        Uri.parse('${Config.sander}/questions/${widget
-            .question['id']}/answers/$answerId'),
+        Uri.parse(
+            '${Config.sander}/questions/${widget.question['id']}/answers/$answerId'),
       );
 
       if (response.statusCode == 200) {
         fetchAnswers();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Réponse supprimée avec succès')),
+          const SnackBar(content: Text('Réponse supprimée avec succès')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
               content: Text('Erreur lors de la suppression de la réponse')),
         );
       }
     } catch (error) {
       print("Erreur lors de la suppression: $error");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Une erreur est survenue')),
+        const SnackBar(content: Text('Une erreur est survenue')),
       );
     }
   }
 
-  Widget _buildRatingBar(String answerId, double currentRating,
-      int totalRatings) {
+  Widget _buildRatingBar(
+      String answerId, double currentRating, int totalRatings) {
     return Row(
       children: [
         RatingBar.builder(
@@ -174,19 +173,18 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
           allowHalfRating: true,
           itemCount: 5,
           itemSize: 20,
-          itemBuilder: (context, _) =>
-              Icon(
-                Icons.star,
-                color: Colors.amber,
-              ),
+          itemBuilder: (context, _) => const Icon(
+            Icons.star,
+            color: Colors.amber,
+          ),
           onRatingUpdate: (rating) {
             rateAnswer(answerId, rating);
           },
         ),
-        SizedBox(width: 8),
+        const SizedBox(width: 8),
         Text(
           '($totalRatings votes)',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
             color: Colors.grey,
           ),
@@ -194,10 +192,6 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
       ],
     );
   }
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +205,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Détail de la question'),
+        title: const Text('Détail de la question'),
       ),
       body: Column(
         children: [
@@ -221,22 +215,22 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           question['title'] ?? 'Sans titre',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(question['content'] ?? ''),
                         if (question['imageUrl'] != null)
                           Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Image.network(
                               question['imageUrl'],
                               height: 200,
@@ -244,18 +238,18 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                               fit: BoxFit.cover,
                             ),
                           ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.person, size: 16),
-                            SizedBox(width: 4),
+                            const Icon(Icons.person, size: 16),
+                            const SizedBox(width: 4),
                             Text(question['userEmail'] ?? 'Anonyme'),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text('le ${date.day}/${date.month}/${date.year}'),
                           ],
                         ),
-                        Divider(height: 32),
-                        Text(
+                        const Divider(height: 32),
+                        const Text(
                           'Réponses',
                           style: TextStyle(
                             fontSize: 18,
@@ -266,20 +260,22 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                     ),
                   ),
                   if (isLoading)
-                    Center(child: CircularProgressIndicator())
+                    const Center(child: CircularProgressIndicator())
                   else
                     ListView.builder(
                       shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: answers.length,
                       itemBuilder: (context, index) {
                         final answer = answers[index];
-                        final isMyAnswer = answer['userId'] == _auth.currentUser?.uid;
+                        final isMyAnswer =
+                            answer['userId'] == _auth.currentUser?.uid;
 
                         return Card(
-                          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
                           child: Padding(
-                            padding: EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -288,36 +284,37 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                                   children: [
                                     // Photo de profil
                                     CircleAvatar(
-                                      backgroundImage: answer['userPhotoURL'] != null
+                                      backgroundImage: answer['userPhotoURL'] !=
+                                              null
                                           ? NetworkImage(answer['userPhotoURL'])
                                           : null,
+                                      radius: 20,
                                       child: answer['userPhotoURL'] == null
                                           ? Icon(Icons.person)
                                           : null,
-                                      radius: 20,
                                     ),
-                                    SizedBox(width: 12),
+                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             answer['userEmail'] ?? 'Anonyme',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
                                             ),
                                           ),
-                                          SizedBox(height: 4),
+                                          const SizedBox(height: 4),
                                           Text(answer['content']),
                                         ],
                                       ),
                                     ),
                                     if (isMyAnswer)
                                       PopupMenuButton(
-                                        itemBuilder: (context) =>
-                                        [
-                                          PopupMenuItem(
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
                                             value: 'edit',
                                             child: Row(
                                               children: [
@@ -327,7 +324,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                                               ],
                                             ),
                                           ),
-                                          PopupMenuItem(
+                                          const PopupMenuItem(
                                             value: 'delete',
                                             child: Row(
                                               children: [
@@ -343,27 +340,42 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                                         ],
                                         onSelected: (value) async {
                                           if (value == 'edit') {
-                                            String updatedContent = answer['content'];
+                                            String updatedContent =
+                                                answer['content'];
                                             await showDialog(
                                               context: context,
                                               builder: (context) => AlertDialog(
-                                                title: Text('Modifier la réponse'),
+                                                title: const Text(
+                                                    'Modifier la réponse'),
                                                 content: TextField(
                                                   maxLines: null,
-                                                  decoration: InputDecoration(hintText: 'Votre réponse...'),
-                                                  onChanged: (value) => updatedContent = value,
-                                                  controller: TextEditingController(text: answer['content']),
+                                                  decoration:
+                                                      const InputDecoration(
+                                                          hintText:
+                                                              'Votre réponse...'),
+                                                  onChanged: (value) =>
+                                                      updatedContent = value,
+                                                  controller:
+                                                      TextEditingController(
+                                                          text: answer[
+                                                              'content']),
                                                 ),
                                                 actions: [
                                                   TextButton(
-                                                    child: Text('Annuler'),
-                                                    onPressed: () => Navigator.of(context).pop(),
+                                                    child:
+                                                        const Text('Annuler'),
+                                                    onPressed: () =>
+                                                        Navigator.of(context)
+                                                            .pop(),
                                                   ),
                                                   TextButton(
-                                                    child: Text('Enregistrer'),
+                                                    child: const Text(
+                                                        'Enregistrer'),
                                                     onPressed: () {
-                                                      updateAnswer(answer['id'], updatedContent);
-                                                      Navigator.of(context).pop();
+                                                      updateAnswer(answer['id'],
+                                                          updatedContent);
+                                                      Navigator.of(context)
+                                                          .pop();
                                                     },
                                                   ),
                                                 ],
@@ -376,25 +388,28 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                                       ),
                                   ],
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(height: 8),
                                 _buildRatingBar(
                                     answer['id'],
                                     answer['averageRating']?.toDouble() ?? 0.0,
-                                    answer['totalRatings'] ?? 0
-                                ),
-                                SizedBox(height: 8),
+                                    answer['totalRatings'] ?? 0),
+                                const SizedBox(height: 8),
                                 // Affichage du rôle de l'utilisateur
                                 Row(
                                   children: [
                                     Icon(
-                                      answer['userRole'] == 'professor' ? Icons.school : Icons.person,
+                                      answer['userRole'] == 'professor'
+                                          ? Icons.school
+                                          : Icons.person,
                                       size: 16,
                                       color: Colors.grey,
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
-                                      answer['userRole'] == 'professor' ? 'Professeur' : 'Étudiant',
-                                      style: TextStyle(
+                                      answer['userRole'] == 'professor'
+                                          ? 'Professeur'
+                                          : 'Étudiant',
+                                      style: const TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
                                       ),
@@ -413,12 +428,10 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
           ),
           SafeArea(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
-                color: Theme
-                    .of(context)
-                    .scaffoldBackgroundColor,
-                boxShadow: [
+                color: Theme.of(context).scaffoldBackgroundColor,
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 4,
@@ -430,7 +443,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                 children: [
                   Expanded(
                     child: TextField(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Votre réponse...',
                         border: OutlineInputBorder(),
                       ),
@@ -439,7 +452,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.send),
+                    icon: const Icon(Icons.send),
                     onPressed: submitAnswer,
                   ),
                 ],
@@ -450,5 +463,4 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
       ),
     );
   }
-
 }

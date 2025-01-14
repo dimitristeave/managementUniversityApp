@@ -9,12 +9,13 @@ import 'package:isibappmoodle/views/home_share_file_view.dart';
 import 'question_detail_page.dart';
 
 class ForumPage extends StatefulWidget {
+  const ForumPage({super.key});
+
   @override
   _ForumPageState createState() => _ForumPageState();
 }
 
 class _ForumPageState extends State<ForumPage> {
-
   String? currentSection;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ImagePicker _picker = ImagePicker();
@@ -51,6 +52,7 @@ class _ForumPageState extends State<ForumPage> {
     }
     return questions.where((q) => q['section'] == currentSection).toList();
   }
+
   @override
   void initState() {
     super.initState();
@@ -105,9 +107,8 @@ class _ForumPageState extends State<ForumPage> {
     String? localSelectedSection;
 
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Vous devez être connecté pour poser une question"))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Vous devez être connecté pour poser une question")));
       return;
     }
 
@@ -128,14 +129,14 @@ class _ForumPageState extends State<ForumPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
+                    const Text(
                       "Poser une question",
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     if (_selectedImage != null)
                       Stack(
                         alignment: Alignment.topRight,
@@ -152,7 +153,7 @@ class _ForumPageState extends State<ForumPage> {
                             ),
                           ),
                           IconButton(
-                            icon: Icon(Icons.close, color: Colors.white),
+                            icon: const Icon(Icons.close, color: Colors.white),
                             onPressed: () {
                               setModalState(() {
                                 _selectedImage = null;
@@ -161,18 +162,18 @@ class _ForumPageState extends State<ForumPage> {
                           ),
                         ],
                       ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      icon: Icon(Icons.image),
-                      label: Text("Ajouter une image"),
+                      icon: const Icon(Icons.image),
+                      label: const Text("Ajouter une image"),
                       onPressed: () async {
                         await _pickImage();
                         setModalState(() {}); // Rafraîchir le modal
                       },
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Section",
                         border: OutlineInputBorder(),
                         hintText: "Choisissez votre section",
@@ -190,9 +191,9 @@ class _ForumPageState extends State<ForumPage> {
                         });
                       },
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     TextField(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Titre de la question",
                         border: OutlineInputBorder(),
                       ),
@@ -202,9 +203,9 @@ class _ForumPageState extends State<ForumPage> {
                         });
                       },
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     TextField(
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Contenu de la question",
                         border: OutlineInputBorder(),
                       ),
@@ -215,27 +216,27 @@ class _ForumPageState extends State<ForumPage> {
                         });
                       },
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        minimumSize: Size(double.infinity, 50),
+                        minimumSize: const Size(double.infinity, 50),
                       ),
                       onPressed: (localQuestionTitle.isNotEmpty &&
-                          localQuestionContent.isNotEmpty &&
-                          localSelectedSection != null)
+                              localQuestionContent.isNotEmpty &&
+                              localSelectedSection != null)
                           ? () {
-                        setState(() {
-                          questionTitle = localQuestionTitle;
-                          questionContent = localQuestionContent;
-                          selectedSection = localSelectedSection;
-                        });
-                        uploadQuestionToServer();
-                        Navigator.pop(context);
-                      }
+                              setState(() {
+                                questionTitle = localQuestionTitle;
+                                questionContent = localQuestionContent;
+                                selectedSection = localSelectedSection;
+                              });
+                              uploadQuestionToServer();
+                              Navigator.pop(context);
+                            }
                           : null,
-                      child: Text("Publier"),
+                      child: const Text("Publier"),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -292,26 +293,27 @@ class _ForumPageState extends State<ForumPage> {
   String getSectionName(String? sectionId) {
     if (sectionId == null) return "Section non spécifiée";
     final section = sections.firstWhere(
-          (section) => section["id"] == sectionId,
+      (section) => section["id"] == sectionId,
       orElse: () => {"id": "", "name": "Section non trouvée"},
     );
     return section["name"]!;
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => HomeShareFile()),
           ),
         ),
-        title: Text('Forum d\'entraide'),
+        title: const Text('Forum d\'entraide'),
         actions: [
           IconButton(
-            icon: Icon(Icons.add),
+            icon: const Icon(Icons.add),
             onPressed: addQuestion,
           ),
         ],
@@ -319,15 +321,15 @@ class _ForumPageState extends State<ForumPage> {
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8.0),
             child: DropdownButtonFormField<String>(
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: "Filtrer par section",
                 border: OutlineInputBorder(),
               ),
               value: currentSection,
               items: [
-                DropdownMenuItem<String>(
+                const DropdownMenuItem<String>(
                   value: null,
                   child: Text("Toutes les sections"),
                 ),
@@ -336,7 +338,7 @@ class _ForumPageState extends State<ForumPage> {
                     value: section["id"],
                     child: Text(section["name"]!),
                   );
-                }).toList(),
+                }),
               ],
               onChanged: (value) {
                 setState(() {
@@ -347,121 +349,148 @@ class _ForumPageState extends State<ForumPage> {
           ),
           Expanded(
             child: isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : hasError
-                ? Center(child: Text("Erreur lors du chargement des questions"))
-                : getFilteredQuestions().isEmpty
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.question_answer_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    "Aucune question disponible",
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: addQuestion,
-                    child: Text("Poser une question"),
-                  ),
-                ],
-              ),
-            )
-                : ListView.builder(
-              itemCount: getFilteredQuestions().length,
-              itemBuilder: (context, index) {
-                final question = getFilteredQuestions()[index];
-                final timestamp = question['createdAt'] != null
-                    ? (question['createdAt'] as Map)['_seconds']
-                    : null;
-                final date = timestamp != null
-                    ? DateTime.fromMillisecondsSinceEpoch(timestamp * 1000)
-                    : DateTime.now();
+                    ? const Center(
+                        child: Text("Erreur lors du chargement des questions"))
+                    : getFilteredQuestions().isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.question_answer_outlined,
+                                    size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  "Aucune question disponible",
+                                  style: TextStyle(
+                                      fontSize: 18, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: addQuestion,
+                                  child: const Text("Poser une question"),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: getFilteredQuestions().length,
+                            itemBuilder: (context, index) {
+                              final question = getFilteredQuestions()[index];
+                              final timestamp = question['createdAt'] != null
+                                  ? (question['createdAt'] as Map)['_seconds']
+                                  : null;
+                              final date = timestamp != null
+                                  ? DateTime.fromMillisecondsSinceEpoch(
+                                      timestamp * 1000)
+                                  : DateTime.now();
 
-                return Card(
-                  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ListTile(
-                        title: Text(
-                          question['title'] ?? 'Sans titre',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 4),
-                            Text(question['content'] ?? ''),
-                            if (question['imageUrl'] != null)
-                              Padding(
-                                padding: EdgeInsets.symmetric(vertical: 8),
-                                child: Image.network(
-                                  question['imageUrl'],
-                                  height: 200,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
+                              return Card(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      title: Text(
+                                        question['title'] ?? 'Sans titre',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 4),
+                                          Text(question['content'] ?? ''),
+                                          if (question['imageUrl'] != null)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 8),
+                                              child: Image.network(
+                                                question['imageUrl'],
+                                                height: 200,
+                                                width: double.infinity,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.school,
+                                                  size: 14, color: Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                getSectionName(
+                                                    question['section']),
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.person,
+                                                  size: 14, color: Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                question['userEmail'] ??
+                                                    'Anonyme',
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                question['userRole'] ==
+                                                        'professor'
+                                                    ? Icons.school
+                                                    : Icons.person_outline,
+                                                size: 14,
+                                                color: Colors.grey,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                question['userRole'] ==
+                                                        'professor'
+                                                    ? 'Professeur'
+                                                    : 'Étudiant',
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            'Posté le ${date.day}/${date.month}/${date.year}',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                      trailing: const Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 16),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                QuestionDetailPage(
+                                                    question: question),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(Icons.school, size: 14, color: Colors.grey),
-                                SizedBox(width: 4),
-                                Text(
-                                  getSectionName(question['section']),
-                                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                Icon(Icons.person, size: 14, color: Colors.grey),
-                                SizedBox(width: 4),
-                                Text(
-                                  question['userEmail'] ?? 'Anonyme',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                                SizedBox(width: 8),
-                                Icon(
-                                  question['userRole'] == 'professor'
-                                      ? Icons.school
-                                      : Icons.person_outline,
-                                  size: 14,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  question['userRole'] == 'professor'
-                                      ? 'Professeur'
-                                      : 'Étudiant',
-                                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              'Posté le ${date.day}/${date.month}/${date.year}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuestionDetailPage(question: question),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                              );
+                            },
+                          ),
           ),
         ],
       ),

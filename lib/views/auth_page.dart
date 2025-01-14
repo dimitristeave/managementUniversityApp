@@ -6,6 +6,8 @@ import 'package:isibappmoodle/config/config';
 import 'package:isibappmoodle/views/home_share_file_view.dart';
 
 class AuthPage extends StatefulWidget {
+  const AuthPage({super.key});
+
   @override
   _AuthPageState createState() => _AuthPageState();
 }
