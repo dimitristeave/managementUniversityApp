@@ -771,7 +771,7 @@ app.post('/preferences', opportunityController.updatePreferences);
 // Route pour récupérer les préférences d'un utilisateur
 app.get('/preferences/:userId', opportunityController.getPreferences);
 
-//////// etienne///////
+
 
 // Modèle de tâche amélioré
 const taskSchema = {
