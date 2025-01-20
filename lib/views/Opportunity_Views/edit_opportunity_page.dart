@@ -88,7 +88,16 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Modifier une opportunité')),
+      appBar: AppBar(
+        title: const Text(
+          'Modifier une opportunité',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Color(0xFF1976D2),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -184,12 +193,25 @@ class _EditOpportunityPageState extends State<EditOpportunityPage> {
               // Bouton pour mettre à jour
               const SizedBox(height: 20),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  backgroundColor: Color(0xFF1976D2),
+                ),
                 onPressed: () {
                   if (_formKey.currentState?.validate() ?? false) {
                     updateWork();
                   }
                 },
-                child: const Text('Mettre à jour'),
+                child: const Text(
+                  'Mettre à jour',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),

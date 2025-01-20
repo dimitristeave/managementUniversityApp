@@ -87,7 +87,14 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajouter une opportunité'),
+        backgroundColor: Color(0xFF1976D2),
+        title: const Text(
+          'Ajouter une opportunité',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(
               Icons.arrow_back), // Flèche pour revenir à la page précédente
@@ -212,6 +219,12 @@ class _AddOpportunityPageState extends State<AddOpportunityPage> {
                           addWork(); // Appel de la fonction pour ajouter l'opportunité
                         }
                       },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF1976D2), // Couleur de fond bleue
+                  foregroundColor: Colors.white, // Couleur du texte blanche
+                  minimumSize:
+                      Size(double.infinity, 50), // Prend toute la largeur
+                ),
                 child: isSubmitting
                     ? const CircularProgressIndicator()
                     : const Text('Ajouter l\'opportunité'),

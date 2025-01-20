@@ -305,10 +305,20 @@ class _OpportunityPageState extends State<OpportunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Opportunités'),
+        backgroundColor: Color(0xFF1976D2),
+        title: const Text(
+          'Opportunités',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
-              icon: const Icon(Icons.add),
+              icon: const Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
               onPressed: () async {
                 final userId =
                     await getUserId(); // Appel de la fonction pour obtenir l'UID
@@ -323,7 +333,10 @@ class _OpportunityPageState extends State<OpportunityPage> {
                 }
               }),
           IconButton(
-            icon: const Icon(Icons.notifications),
+            icon: const Icon(
+              Icons.notifications,
+              color: Colors.white,
+            ),
             onPressed: _showSectionSelectionDialog,
           ),
         ],
@@ -347,6 +360,16 @@ class _OpportunityPageState extends State<OpportunityPage> {
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              backgroundColor: Color(0xFF1976D2),
+                            ),
                             onPressed: () async {
                               final userId =
                                   await getUserId(); // Appel de la fonction pour obtenir l'UID
@@ -361,7 +384,12 @@ class _OpportunityPageState extends State<OpportunityPage> {
                                 fetchWorks(); // Recharge les données après l'ajout
                               }
                             },
-                            child: const Text('Ajouter une opportunité'),
+                            child: const Text(
+                              'Ajouter une opportunité',
+                              style: TextStyle(
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -422,6 +450,7 @@ class _OpportunityPageState extends State<OpportunityPage> {
                               itemBuilder: (context, index) {
                                 final work = filteredWorks[index];
                                 return Card(
+                                  color: Color(0xFF1976D2),
                                   elevation: 4,
                                   margin: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 8),
@@ -429,11 +458,15 @@ class _OpportunityPageState extends State<OpportunityPage> {
                                     title: Text(
                                       work.company,
                                       style: const TextStyle(
-                                          color: Colors.black,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.bold),
                                     ),
                                     subtitle: Text(
-                                        '${work.section} - ${work.address}'),
+                                      '${work.section} - ${work.address}',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                     onTap: () {
                                       Navigator.push(
                                         context,
@@ -444,6 +477,11 @@ class _OpportunityPageState extends State<OpportunityPage> {
                                       );
                                     },
                                     trailing: PopupMenuButton<String>(
+                                      icon: Icon(
+                                        Icons.more_vert,
+                                        color: Colors
+                                            .white, // Définir l'icône en blanc
+                                      ),
                                       onSelected: (value) async {
                                         final userId = await getUserId();
                                         if (value == 'Modifier') {
