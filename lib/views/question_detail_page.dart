@@ -195,6 +195,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    
     final question = widget.question;
     final timestamp = question['createdAt'] != null
         ? (question['createdAt'] as Map)['_seconds']
@@ -205,7 +206,12 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Détail de la question'),
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
+        title: const Text(
+          'Détails de la demande',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Column(
         children: [
