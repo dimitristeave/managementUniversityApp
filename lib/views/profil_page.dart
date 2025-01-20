@@ -19,13 +19,13 @@ class _ProfilePageState extends State<ProfilePage> {
   String role = '';
   String photoURL = '';
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
   @override
   void initState() {
     super.initState();
     fetchUserData();
   }
+  
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> fetchUserData() async {
     final User? user = _auth.currentUser;
@@ -77,72 +77,135 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pushReplacementNamed(context, '/home');
           },
         ),
-        title: const Text('Profil'),
+        title: const Text(
+          'Profil',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 75,
-                backgroundImage:
-                    photoURL.isNotEmpty ? NetworkImage(photoURL) : null,
-                child: photoURL.isEmpty
-                    ? const Icon(Icons.person, size: 75)
-                    : null,
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _changeProfilePhoto,
-                icon: const Icon(Icons.edit),
-                label: const Text('Changer la photo'),
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                ),
-              ),
-              const SizedBox(height: 30),
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 5,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text('Email:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(email, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 10),
-                      const Text('Classe:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(classe, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 10),
-                      const Text('Filière:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(filiere, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 10),
-                      const Text('Rôle:',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(role, style: const TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                ),
-              ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
             ],
           ),
         ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF1976D2).withOpacity(0.2),
+                      width: 4,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 75,
+                    backgroundImage:
+                        photoURL.isNotEmpty ? NetworkImage(photoURL) : null,
+                    backgroundColor: Colors.grey.shade50,
+                    child: photoURL.isEmpty
+                        ? const Icon(Icons.person,
+                            size: 75, color: Color(0xFF1976D2))
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: _changeProfilePhoto,
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  label: const Text(
+                    'Changer la photo',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1976D2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: BorderSide(
+                      color: const Color(0xFF1976D2).withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildInfoItem('Email', email),
+                        const SizedBox(height: 16),
+                        _buildInfoItem('Classe', classe),
+                        const SizedBox(height: 16),
+                        _buildInfoItem('Filière', filiere),
+                        const SizedBox(height: 16),
+                        _buildInfoItem('Rôle', role),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF1976D2),
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            value.isEmpty ? 'Non spécifié' : value,
+            style: TextStyle(
+              fontSize: 16,
+              color: value.isEmpty ? Colors.grey : Colors.black87,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

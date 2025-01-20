@@ -15,6 +15,7 @@ class AddProjectMemberPage extends StatefulWidget {
 
 class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
   bool _isLoading = false;
+  bool _isSubmitting = false;
   List<Map<String, dynamic>> _availableMembers = [];
   String? _selectedEmail;
   String? _projectName;
@@ -24,6 +25,19 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
     super.initState();
     _loadProjectData();
     _loadAvailableMembers();
+  }
+
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF1976D2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   Future<void> _loadProjectData() async {
@@ -36,9 +50,11 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
         setState(() {
           _projectName = projectData['name'];
         });
+      } else {
+        throw Exception('Erreur lors du chargement du projet');
       }
     } catch (e) {
-      print('Erreur lors du chargement du projet: $e');
+      _showSnackBar('Erreur lors du chargement du projet: $e');
     }
   }
 
@@ -46,25 +62,22 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
     setState(() => _isLoading = true);
     try {
       final response = await http.get(
-        Uri.parse(
-            '${Config.sander}/projects/${widget.projectId}/members/available'),
+        Uri.parse('${Config.sander}/api/projects/${widget.projectId}/members/available'),
       );
 
       if (response.statusCode == 200) {
         final List members = json.decode(response.body);
         setState(() {
-          _availableMembers = members
-              .map((member) => {
-                    'email': member['email'],
-                    'name': member['name'] ?? member['email'] ?? 'Sans nom',
-                  })
-              .toList();
+          _availableMembers = members.map((member) => {
+            'email': member['email'],
+            'name': member['name'] ?? member['email'] ?? 'Sans nom',
+          }).toList();
         });
       } else {
         throw Exception('Échec du chargement des membres disponibles');
       }
     } catch (e) {
-      _showErrorMessage('Erreur: $e');
+      _showSnackBar('Erreur: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -72,11 +85,11 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
 
   Future<void> _addMemberToProject() async {
     if (_selectedEmail == null) {
-      _showErrorMessage('Veuillez sélectionner un membre');
+      _showSnackBar('Veuillez sélectionner un membre');
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSubmitting = true);
     try {
       final response = await http.post(
         Uri.parse('${Config.sander}/api/projects/${widget.projectId}/members'),
@@ -85,109 +98,188 @@ class _AddProjectMemberPageState extends State<AddProjectMemberPage> {
       );
 
       if (response.statusCode == 200) {
-        // Récupérer le nom du projet
-        final projectResponse = await http.get(
-          Uri.parse('${Config.sander}/api/projects/${widget.projectId}'),
+        await NotificationService.showProjectInviteNotification(
+          projectName: _projectName ?? 'Projet',
+          userEmail: _selectedEmail!,
         );
-
-        if (projectResponse.statusCode == 200) {
-          final projectData = json.decode(projectResponse.body);
-          await NotificationService.showProjectInviteNotification(
-            projectName: projectData['name'],
-            userEmail: _selectedEmail!,
-          );
-        }
-
-        _showSuccessMessage('Membre ajouté avec succès');
+        _showSnackBar('Membre ajouté avec succès', isError: false);
         Navigator.pop(context, true);
       } else {
         throw Exception('Échec de l\'ajout du membre');
       }
     } catch (e) {
-      _showErrorMessage('Erreur: $e');
+      _showSnackBar('Erreur: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => _isSubmitting = false);
     }
-  }
-
-  void _showErrorMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-
-  void _showSuccessMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ajouter un membre au projet'),
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
+        title: const Text(
+          'Ajouter un membre',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Sélectionner un membre',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 16),
-                          if (_availableMembers.isEmpty)
-                            const Text('Aucun membre disponible')
-                          else
-                            DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                labelText: 'Membre',
-                                border: OutlineInputBorder(),
-                              ),
-                              value: _selectedEmail,
-                              items: _availableMembers.map((member) {
-                                return DropdownMenuItem<String>(
-                                  value: member['email'],
-                                  child: Text(member['email']),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedEmail = value;
-                                });
-                              },
-                            ),
-                        ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                ),
+              )
+            : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Ajouter un nouveau membre",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1976D2),
+                        ),
                       ),
-                    ),
+                      if (_projectName != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          "Projet: $_projectName",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 32),
+                      Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          side: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Sélectionner un membre",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1976D2),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              if (_availableMembers.isEmpty)
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'Aucun membre disponible',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                )
+                              else
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade200),
+                                  ),
+                                  child: DropdownButtonFormField<String>(
+                                    decoration: InputDecoration(
+                                      labelText: 'Sélectionner un membre',
+                                      labelStyle: TextStyle(color: Colors.grey.shade700),
+                                      border: InputBorder.none,
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    value: _selectedEmail,
+                                    items: _availableMembers.map((member) {
+                                      return DropdownMenuItem<String>(
+                                        value: member['email'],
+                                        child: Text(member['email']),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() => _selectedEmail = value);
+                                    },
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _selectedEmail == null || _isSubmitting
+                              ? null
+                              : _addMemberToProject,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1976D2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Ajouter au projet',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed:
-                        _selectedEmail != null ? _addMemberToProject : null,
-                    child: const Text('Ajouter au projet'),
-                  ),
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }

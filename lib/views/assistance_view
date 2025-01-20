@@ -5,9 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:isibappmoodle/config/config';
 import 'package:isibappmoodle/reutilisable/app_drawer.dart';
 
-
-
 class AssistancePage extends StatefulWidget {
+  const AssistancePage({super.key});
+
   @override
   _AssistancePageState createState() => _AssistancePageState();
 }
@@ -15,17 +15,17 @@ class AssistancePage extends StatefulWidget {
 class _AssistancePageState extends State<AssistancePage> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedMatiere;
-  String? _selectedDestinataire;
+  Map<String, dynamic>? _selectedUser;
   DateTime? _selectedDate;
   String? _selectedLieu;
-  Map<String, dynamic>? _selectedUser;
-  List<String> _matieres = []; 
+  List<String> _matieres = [];
   bool _isLoadingMatieres = true;
+  bool _isSubmitting = false;
   
   List<Map<String, dynamic>> _professors = [];
   List<Map<String, dynamic>> _students = [];
-  TextEditingController _heuresController = TextEditingController();
-  TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _heuresController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
 
   final List<String> _lieux = [
     'Bibliothèque',
@@ -42,11 +42,33 @@ class _AssistancePageState extends State<AssistancePage> {
     _fetchMatieres();
   }
 
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error : Icons.check_circle,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(message),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red : const Color(0xFF1976D2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   Future<void> _fetchUsers() async {
     try {
-      final response = await http.get(
-        Uri.parse('${Config.sander}/users'),
-      );
+      final response = await http.get(Uri.parse('${Config.sander}/users'));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -56,116 +78,267 @@ class _AssistancePageState extends State<AssistancePage> {
         });
       }
     } catch (e) {
-      print('Erreur: $e');
+      _showSnackBar('Erreur lors du chargement des utilisateurs');
     }
   }
 
-  Future<void> _submitDemande() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-      if (currentUser == null || _selectedUser == null) return;
-      
-      try {
-        // Récupérer les données de l'utilisateur courant depuis Firestore
-        final userResponse = await http.get(
-          Uri.parse('${Config.sander}/user/${currentUser.uid}'),
-        );
-        
-        final userData = json.decode(userResponse.body);
-        
-        final response = await http.post(
-          Uri.parse('${Config.sander}/assistance'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            'matiere': _selectedMatiere,
-            'destinataireId': _selectedUser!['uid'],
-            'destinataireEmail': _selectedUser!['email'],
-            'date': _selectedDate?.toIso8601String(),
-            'heures': int.parse(_heuresController.text),
-            'lieu': _selectedLieu,
-            'description': _descriptionController.text,
-            'demandeurId': currentUser.uid,
-            'demandeurEmail': currentUser.email,
-            'demandeurClasse': userData['classe'],
-            'demandeurFiliere': userData['filiere'],
-            'status': 'en attente'
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Demande envoyée avec succès')),
-          );
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de l\'envoi de la demande')),
-        );
-      }
-  }
-
-  Widget _buildUserTile(Map<String, dynamic> user) {
-    return ListTile(
-      title: Text(user['email'] ?? 'Email non disponible'),
-      subtitle: Text(
-        '${user['classe'] ?? ''} ${user['filiere'] ?? ''}'.trim(),
-      ),
-      onTap: () => setState(() => _selectedUser = user),
-      selected: _selectedUser == user,
-      trailing: _selectedUser == user ? Icon(Icons.check) : null,
-    );
-  }
-
-  // Ajout de la fonction pour récupérer les matières
   Future<void> _fetchMatieres() async {
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      setState(() => _isLoadingMatieres = false);
+      return;
+    }
 
     try {
-      // D'abord, récupérer les infos de l'utilisateur pour avoir sa classe et filière
       final userResponse = await http.get(
         Uri.parse('${Config.sander}/user/${currentUser.uid}'),
       );
 
-      if (userResponse.statusCode != 200) {
-        throw Exception('Impossible de récupérer les informations utilisateur');
-      }
+      if (userResponse.statusCode == 200) {
+        final userData = json.decode(userResponse.body);
+        final userClasse = userData['classe'];
+        final userFiliere = userData['filiere'];
 
-      final userData = json.decode(userResponse.body);
-      final userClasse = userData['classe'];
-      final userFiliere = userData['filiere'];
-      print(userClasse);
-      print(userFiliere);
-
-      final String apiUrl ="${Config.sander}/getSubjectsByClass"; // Remplacez par l'URL de votre API
-      try {
-        final response = await http.get(Uri.parse(
-            '$apiUrl?classe=$userClasse&filiere=$userFiliere'));
+        final response = await http.get(
+          Uri.parse('${Config.sander}/getSubjectsByClass?classe=$userClasse&filiere=$userFiliere'),
+        );
 
         if (response.statusCode == 200) {
+          final List<dynamic> data = json.decode(response.body);
           setState(() {
-            final List<dynamic> data = json.decode(response.body); // Parse la réponse JSON
-            setState(() {
-              _matieres = data.map((subject) => subject['nom_matiere'] as String).toList();           
-            });
-          });
-        } else {
-          setState(() {
+            _matieres = data.map((subject) => subject['nom_matiere'] as String).toList();
+            _isLoadingMatieres = false;
           });
         }
-      } catch (e) {
-        setState(() {
-        _matieres = [];  // Liste vide en cas d'erreur
-        });
       }
     } catch (e) {
-      print('Erreur lors de la récupération des matières: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la récupération des matières')),
-      );
       setState(() {
-        _matieres = [];  // Liste vide en cas d'erreur
+        _matieres = [];
+        _isLoadingMatieres = false;
       });
+      _showSnackBar('Erreur lors du chargement des matières');
+    }
+  }
+
+  Widget _buildFormField({
+    required String label,
+    TextEditingController? controller,
+    TextInputType? keyboardType,
+    int? maxLines,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey.shade700),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF1976D2)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required String label,
+    required T? value,
+    required List<T> items,
+    required String Function(T) getLabel,
+    required Function(T?) onChanged,
+    String? Function(T?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<T>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey.shade700),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        items: items.map((item) {
+          return DropdownMenuItem<T>(
+            value: item,
+            child: Text(getLabel(item)),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildUserSection(String title, List<Map<String, dynamic>> users) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1976D2),
+            ),
+          ),
+          children: users.isEmpty
+              ? [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'Aucun ${title.toLowerCase()} disponible',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  ),
+                ]
+              : users.map((user) => _buildUserTile(user)).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserTile(Map<String, dynamic> user) {
+    final bool isSelected = _selectedUser == user;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF1976D2).withOpacity(0.1) : null,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: isSelected ? const Color(0xFF1976D2) : Colors.grey.shade200,
+          child: Icon(
+            Icons.person,
+            color: isSelected ? Colors.white : Colors.grey.shade600,
+          ),
+        ),
+        title: Text(
+          user['email'] ?? 'Email non disponible',
+          style: TextStyle(
+            color: isSelected ? const Color(0xFF1976D2) : Colors.black87,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        subtitle: Text(
+          '${user['classe'] ?? ''} ${user['filiere'] ?? ''}'.trim(),
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+        trailing: isSelected
+            ? const Icon(Icons.check_circle, color: Color(0xFF1976D2))
+            : null,
+        onTap: () => setState(() => _selectedUser = user),
+      ),
+    );
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF1976D2),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _submitDemande() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null || _selectedUser == null) {
+      _showSnackBar('Erreur: Utilisateur non connecté');
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
+    try {
+      final userResponse = await http.get(
+        Uri.parse('${Config.sander}/user/${currentUser.uid}'),
+      );
+      
+      final userData = json.decode(userResponse.body);
+      
+      final response = await http.post(
+        Uri.parse('${Config.sander}/assistance'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'matiere': _selectedMatiere,
+          'destinataireId': _selectedUser!['uid'],
+          'destinataireEmail': _selectedUser!['email'],
+          'date': _selectedDate?.toIso8601String(),
+          'heures': int.parse(_heuresController.text),
+          'lieu': _selectedLieu,
+          'description': _descriptionController.text,
+          'demandeurId': currentUser.uid,
+          'demandeurEmail': currentUser.email,
+          'demandeurClasse': userData['classe'],
+          'demandeurFiliere': userData['filiere'],
+          'status': 'en attente'
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _showSnackBar('Demande envoyée avec succès', isError: false);
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        throw Exception('Échec de l\'envoi');
+      }
+    } catch (e) {
+      _showSnackBar('Erreur lors de l\'envoi de la demande');
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
 
@@ -173,117 +346,183 @@ class _AssistancePageState extends State<AssistancePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Demande d\'assistance'),
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
+        title: const Text(
+          'Demande d\'assistance',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
-      drawer: AppDrawer(),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
+      drawer: const AppDrawer(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(labelText: 'Matière'),
-                        value: _selectedMatiere,
-                        items: _matieres.map((matiere) {
-                          return DropdownMenuItem(
-                            value: matiere,
-                            child: Text(matiere),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedMatiere = value);
-                        },
-                        validator: (value) => value == null ? 'Champ requis' : null,
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              const Text(
+                "Nouvelle demande d'assistance",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1976D2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (_isLoadingMatieres)
+                const Center(child: CircularProgressIndicator())
+              else
+                _buildDropdown<String>(
+                  label: 'Matière',
+                  value: _selectedMatiere,
+                  items: _matieres,
+                  getLabel: (matiere) => matiere,
+                  onChanged: (value) => setState(() => _selectedMatiere = value),
+                  validator: (value) => value == null ? 'Choisissez une matière' : null,
+                ),
+              const Text(
+                "Choisir un destinataire",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1976D2),
+                  height: 2.5,
+                ),
+              ),
+              _buildUserSection('Professeurs', _professors),
+              _buildUserSection('Étudiants', _students),
+              _buildFormField(
+                label: 'Nombre d\'heures',
+                controller: _heuresController,
+                keyboardType: TextInputType.number,
+                validator: (value) => value?.isEmpty ?? true ? 'Champ requis' : null,
+              ),
+              InkWell(
+                onTap: _selectDate,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
-                SizedBox(height: 16),
-                
-                Text('Choisir un destinataire:', style: TextStyle(fontWeight: FontWeight.bold)),
-                
-                ExpansionTile(
-                  title: Text('Professeurs'),
-                  children: _professors.isEmpty 
-                    ? [ListTile(title: Text('Aucun professeur disponible'))]
-                    : _professors.map((prof) => _buildUserTile(prof)).toList(),
-                ),
-                
-                ExpansionTile(
-                  title: Text('Étudiants'),
-                  children: _students.isEmpty 
-                    ? [ListTile(title: Text('Aucun étudiant disponible'))]
-                    : _students.map((student) => _buildUserTile(student)).toList(),
-                ),
-                
-                SizedBox(height: 16),
-                
-                TextFormField(
-                  decoration: InputDecoration(labelText: 'Nombre d\'heures'),
-                  controller: _heuresController,
-                  keyboardType: TextInputType.number,
-                  validator: (value) => value?.isEmpty ?? true ? 'Champ requis' : null,
-                ),
-                
-                SizedBox(height: 16),
-                
-                TextButton(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(Duration(days: 365)),
-                    );
-                    if (date != null) {
-                      setState(() => _selectedDate = date);
-                    }
-                  },
-                  child: Text(_selectedDate == null
-                      ? 'Choisir une date'
-                      : 'Date: ${_selectedDate.toString().split(' ')[0]}'),
-                ),
-                
-                SizedBox(height: 16),
-                
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(labelText: 'Lieu'),
-                  value: _selectedLieu,
-                  items: _lieux.map((lieu) {
-                    return DropdownMenuItem(
-                      value: lieu,
-                      child: Text(lieu),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedLieu = value);
-                  },
-                  validator: (value) => value == null ? 'Champ requis' : null,
-                ),
-                
-                SizedBox(height: 16),
-                
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    hintText: 'Détaillez votre demande d\'assistance',
+                    ],
                   ),
-                  controller: _descriptionController,
-                  maxLines: 3,
-                  validator: (value) => value?.isEmpty ?? true ? 'Champ requis' : null,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _selectedDate == null
+                            ? 'Sélectionner une date'
+                            : 'Date: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
+                        style: TextStyle(
+                          color: _selectedDate == null ? Colors.grey.shade600 : Colors.black87,
+                        ),
+                      ),
+                      const Icon(Icons.calendar_today, color: Color(0xFF1976D2)),
+                    ],
+                  ),
                 ),
-                
-                SizedBox(height: 24),
-                
-                ElevatedButton(
-                  onPressed: _submitDemande,
-                  child: Text('Envoyer la demande'),
+              ),
+              _buildDropdown<String>(
+                label: 'Lieu',
+                value: _selectedLieu,
+                items: _lieux,
+                getLabel: (lieu) => lieu,
+                onChanged: (value) => setState(() => _selectedLieu = value),
+                validator: (value) => value == null ? 'Choisissez un lieu' : null,
+              ),
+              _buildFormField(
+                label: 'Description',
+                controller: _descriptionController,
+                maxLines: 4,
+                validator: (value) => value?.isEmpty ?? true ? 'Champ requis' : null,
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : () {
+                    if (_selectedUser == null) {
+                      _showSnackBar('Veuillez sélectionner un destinataire');
+                      return;
+                    }
+                    if (_selectedDate == null) {
+                      _showSnackBar('Veuillez sélectionner une date');
+                      return;
+                    }
+                    _submitDemande();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1976D2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 2,
+                  ).copyWith(
+                    overlayColor: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) {
+                        if (states.contains(MaterialState.pressed)) {
+                          return const Color(0xFF1976D2).withOpacity(0.8);
+                        }
+                        return const Color(0xFF1976D2);
+                      },
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.send, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Envoyer la demande',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 32),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _heuresController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 }

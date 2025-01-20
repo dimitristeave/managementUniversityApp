@@ -46,12 +46,6 @@ class _ForumPageState extends State<ForumPage> {
     {"id": "13", "name": "MA2 Electromécanique"},
     {"id": "14", "name": "MA2 Aéronautique"},
   ];
-  List<Map<String, dynamic>> getFilteredQuestions() {
-    if (currentSection == null) {
-      return questions;
-    }
-    return questions.where((q) => q['section'] == currentSection).toList();
-  }
 
   @override
   void initState() {
@@ -60,11 +54,32 @@ class _ForumPageState extends State<ForumPage> {
     fetchQuestions();
   }
 
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error : Icons.check_circle,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red : const Color(0xFF1976D2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   Future<void> fetchQuestions() async {
+    setState(() => isLoading = true);
     try {
-      final response = await http.get(
-        Uri.parse('${Config.sander}/questions'),
-      );
+      final response = await http.get(Uri.parse('${Config.sander}/questions'));
 
       if (response.statusCode == 200) {
         List<dynamic> data = json.decode(response.body);
@@ -73,171 +88,316 @@ class _ForumPageState extends State<ForumPage> {
           isLoading = false;
         });
       } else {
-        setState(() {
-          hasError = true;
-          isLoading = false;
-        });
+        throw Exception('Erreur serveur');
       }
     } catch (error) {
       setState(() {
         hasError = true;
         isLoading = false;
       });
-      print("Erreur: $error");
+      _showSnackBar('Erreur lors du chargement des questions');
     }
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1800,
-      maxHeight: 1800,
-    );
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1800,
+        maxHeight: 1800,
+      );
 
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
+      if (image != null) {
+        setState(() => _selectedImage = File(image.path));
+      }
+    } catch (e) {
+      _showSnackBar('Erreur lors de la sélection de l\'image');
     }
   }
 
-  Future<void> addQuestion() async {
-    String localQuestionTitle = '';
-    String localQuestionContent = '';
-    String? localSelectedSection;
+  Widget _buildQuestionCard(Map<String, dynamic> question) {
+    final timestamp = question['createdAt'] != null
+        ? (question['createdAt'] as Map)['_seconds']
+        : null;
+    final date = timestamp != null
+        ? DateTime.fromMillisecondsSinceEpoch(timestamp * 1000)
+        : DateTime.now();
 
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: BorderSide(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => QuestionDetailPage(question: question),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(15),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFF1976D2).withOpacity(0.1),
+                    child: Icon(
+                      question['userRole'] == 'professor'
+                          ? Icons.school
+                          : Icons.person,
+                      color: const Color(0xFF1976D2),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          question['title'] ?? 'Sans titre',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1976D2),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          question['userEmail'] ?? 'Anonyme',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        Text(
+                          '${date.day}/${date.month}/${date.year}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      question['userRole'] == 'professor'
+                          ? 'Professeur'
+                          : 'Étudiant',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF1976D2),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                question['content'] ?? '',
+                style: const TextStyle(fontSize: 16),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (question['imageUrl'] != null) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    question['imageUrl'],
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.school,
+                    size: 16,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    getSectionName(question['section']),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> addQuestion() async {
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Vous devez être connecté pour poser une question")));
+      _showSnackBar('Vous devez être connecté pour poser une question');
       return;
     }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
-                top: 16,
-                left: 16,
-                right: 16,
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "Poser une question",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Poser une question",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1976D2),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_selectedImage != null)
-                      Stack(
-                        alignment: Alignment.topRight,
+                      const SizedBox(height: 24),
+                      if (_selectedImage != null)
+                        Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            Container(
+                              height: 200,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                image: DecorationImage(
+                                  image: FileImage(_selectedImage!),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              color: Colors.white,
+                              onPressed: () {
+                                setModalState(() => _selectedImage = null);
+                              },
+                            ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+                      _buildFormField(
+                        "Section",
+                        (String? value) {
+                          setModalState(() => selectedSection = value);
+                        },
+                        sections.map((section) {
+                          return DropdownMenuItem(
+                            value: section["id"],
+                            child: Text(section["name"]!),
+                          );
+                        }).toList(),
+                        selectedSection,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextFormField(
+                        "Titre de la question",
+                        (String value) {
+                          setModalState(() => questionTitle = value);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextFormField(
+                        "Contenu de la question",
+                        (String value) {
+                          setModalState(() => questionContent = value);
+                        },
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
                         children: [
-                          Container(
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              image: DecorationImage(
-                                image: FileImage(_selectedImage!),
-                                fit: BoxFit.cover,
+                          Expanded(
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.image),
+                              label: const Text("Ajouter une image"),
+                              onPressed: () async {
+                                await _pickImage();
+                                setModalState(() {});
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF1976D2),
                               ),
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () {
-                              setModalState(() {
-                                _selectedImage = null;
-                              });
-                            },
-                          ),
                         ],
                       ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.image),
-                      label: const Text("Ajouter une image"),
-                      onPressed: () async {
-                        await _pickImage();
-                        setModalState(() {}); // Rafraîchir le modal
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: "Section",
-                        border: OutlineInputBorder(),
-                        hintText: "Choisissez votre section",
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: (questionTitle.isNotEmpty &&
+                                  questionContent.isNotEmpty &&
+                                  selectedSection != null)
+                              ? () {
+                                  Navigator.pop(context);
+                                  uploadQuestionToServer();
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1976D2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            "Publier",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                       ),
-                      value: localSelectedSection,
-                      items: sections.map((section) {
-                        return DropdownMenuItem(
-                          value: section["id"],
-                          child: Text(section["name"]!),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setModalState(() {
-                          localSelectedSection = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: "Titre de la question",
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setModalState(() {
-                          localQuestionTitle = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      decoration: const InputDecoration(
-                        labelText: "Contenu de la question",
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                      onChanged: (value) {
-                        setModalState(() {
-                          localQuestionContent = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      onPressed: (localQuestionTitle.isNotEmpty &&
-                              localQuestionContent.isNotEmpty &&
-                              localSelectedSection != null)
-                          ? () {
-                              setState(() {
-                                questionTitle = localQuestionTitle;
-                                questionContent = localQuestionContent;
-                                selectedSection = localSelectedSection;
-                              });
-                              uploadQuestionToServer();
-                              Navigator.pop(context);
-                            }
-                          : null,
-                      child: const Text("Publier"),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -247,10 +407,58 @@ class _ForumPageState extends State<ForumPage> {
     );
   }
 
+  Widget _buildFormField(
+    String label,
+    Function(String?) onChanged,
+    List<DropdownMenuItem<String>> items,
+    String? value,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        items: items,
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _buildTextFormField(
+    String label,
+    Function(String) onChanged, {
+    int maxLines = 1,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: TextField(
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        onChanged: onChanged,
+      ),
+    );
+  }
+
   Future<void> uploadQuestionToServer() async {
     try {
       if (currentUser == null) {
-        print("Aucun utilisateur connecté");
+        _showSnackBar('Vous devez être connecté');
         return;
       }
 
@@ -259,34 +467,31 @@ class _ForumPageState extends State<ForumPage> {
         Uri.parse('${Config.sander}/questions'),
       );
 
-      request.fields['userId'] = currentUser!.uid;
-      request.fields['title'] = questionTitle;
-      request.fields['content'] = questionContent;
-      request.fields['section'] = selectedSection!;
+      request.fields.addAll({
+        'userId': currentUser!.uid,
+        'title': questionTitle,
+        'content': questionContent,
+        'section': selectedSection!,
+      });
 
       if (_selectedImage != null) {
-        var imageFile = await http.MultipartFile.fromPath(
-          'image',
-          _selectedImage!.path,
+        request.files.add(
+          await http.MultipartFile.fromPath('image', _selectedImage!.path),
         );
-        request.files.add(imageFile);
       }
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        print("Question publiée avec succès");
-        setState(() {
-          _selectedImage = null;
-        });
-        fetchQuestions();
+        _showSnackBar('Question publiée avec succès', isError: false);
+        setState(() => _selectedImage = null);
+        await fetchQuestions();
       } else {
-        print("Erreur lors de la publication: ${response.statusCode}");
-        print("Response body: ${response.body}");
+        throw Exception('Erreur lors de la publication');
       }
     } catch (e) {
-      print("Erreur: $e");
+      _showSnackBar('Erreur: $e');
     }
   }
 
@@ -303,196 +508,178 @@ class _ForumPageState extends State<ForumPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => HomeShareFile()),
           ),
         ),
-        title: const Text('Forum d\'entraide'),
+        title: const Text(
+          'Forum d\'entraide',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: addQuestion,
+            tooltip: 'Poser une question',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: "Filtrer par section",
-                border: OutlineInputBorder(),
-              ),
-              value: currentSection,
-              items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text("Toutes les sections"),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                ...sections.map((section) {
-                  return DropdownMenuItem(
-                    value: section["id"],
-                    child: Text(section["name"]!),
-                  );
-                }),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  currentSection = value;
-                });
-              },
+                child: DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: "Filtrer par section",
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    labelStyle: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  value: currentSection,
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text("Toutes les sections"),
+                    ),
+                    ...sections.map((section) {
+                      return DropdownMenuItem(
+                        value: section["id"],
+                        child: Text(section["name"]!),
+                      );
+                    }),
+                  ],
+                  onChanged: (value) => setState(() => currentSection = value),
+                ),
+              ),
             ),
-          ),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : hasError
-                    ? const Center(
-                        child: Text("Erreur lors du chargement des questions"))
-                    : getFilteredQuestions().isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.question_answer_outlined,
-                                    size: 64, color: Colors.grey),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  "Aucune question disponible",
-                                  style: TextStyle(
-                                      fontSize: 18, color: Colors.grey),
+            Expanded(
+              child: isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                      ),
+                    )
+                  : hasError
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Color(0xFF1976D2),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "Erreur lors du chargement",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Color(0xFF1976D2),
                                 ),
-                                const SizedBox(height: 8),
-                                ElevatedButton(
-                                  onPressed: addQuestion,
-                                  child: const Text("Poser une question"),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: fetchQuestions,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1976D2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: getFilteredQuestions().length,
-                            itemBuilder: (context, index) {
-                              final question = getFilteredQuestions()[index];
-                              final timestamp = question['createdAt'] != null
-                                  ? (question['createdAt'] as Map)['_seconds']
-                                  : null;
-                              final date = timestamp != null
-                                  ? DateTime.fromMillisecondsSinceEpoch(
-                                      timestamp * 1000)
-                                  : DateTime.now();
-
-                              return Card(
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ListTile(
-                                      title: Text(
-                                        question['title'] ?? 'Sans titre',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const SizedBox(height: 4),
-                                          Text(question['content'] ?? ''),
-                                          if (question['imageUrl'] != null)
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 8),
-                                              child: Image.network(
-                                                question['imageUrl'],
-                                                height: 200,
-                                                width: double.infinity,
-                                                fit: BoxFit.cover,
-                                              ),
-                                            ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.school,
-                                                  size: 14, color: Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                getSectionName(
-                                                    question['section']),
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey),
-                                              ),
-                                            ],
-                                          ),
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.person,
-                                                  size: 14, color: Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                question['userEmail'] ??
-                                                    'Anonyme',
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Icon(
-                                                question['userRole'] ==
-                                                        'professor'
-                                                    ? Icons.school
-                                                    : Icons.person_outline,
-                                                size: 14,
-                                                color: Colors.grey,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                question['userRole'] ==
-                                                        'professor'
-                                                    ? 'Professeur'
-                                                    : 'Étudiant',
-                                                style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.grey),
-                                              ),
-                                            ],
-                                          ),
-                                          Text(
-                                            'Posté le ${date.day}/${date.month}/${date.year}',
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey),
-                                          ),
-                                        ],
-                                      ),
-                                      trailing: const Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 16),
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                QuestionDetailPage(
-                                                    question: question),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
+                                child: const Text("Réessayer"),
+                              ),
+                            ],
                           ),
-          ),
-        ],
+                        )
+                      : RefreshIndicator(
+                          color: const Color(0xFF1976D2),
+                          onRefresh: fetchQuestions,
+                          child: questions.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.question_answer_outlined,
+                                        size: 64,
+                                        color: Color(0xFF1976D2),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        "Aucune question disponible",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton.icon(
+                                        icon: const Icon(Icons.add),
+                                        label: const Text("Poser une question"),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF1976D2),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                        ),
+                                        onPressed: addQuestion,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  itemCount: questions.length,
+                                  itemBuilder: (context, index) {
+                                    final question = questions[index];
+                                    if (currentSection != null &&
+                                        question['section'] != currentSection) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return _buildQuestionCard(question);
+                                  },
+                                ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF1976D2),
+        onPressed: addQuestion,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

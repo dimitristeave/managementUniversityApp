@@ -12,12 +12,10 @@ class AddSubjectForm extends StatefulWidget {
 
 class _AddSubjectFormState extends State<AddSubjectForm> {
   final _formKey = GlobalKey<FormState>();
-
-  // Dropdown values
   String? selectedClass;
   String? selectedFiliere;
+  bool _isSubmitting = false;
 
-  // Classes disponibles
   final List<String> classes = [
     "BAC 1",
     "BAC 2",
@@ -27,7 +25,6 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
     "Master 2"
   ];
 
-  // Filières disponibles
   final List<String> filieres = [
     "Commun",
     "Info",
@@ -38,181 +35,259 @@ class _AddSubjectFormState extends State<AddSubjectForm> {
     "Electricité"
   ];
 
-  // Controllers pour les champs texte
   final TextEditingController subjectNameController = TextEditingController();
   final TextEditingController subjectIdController = TextEditingController();
   final TextEditingController professorNameController = TextEditingController();
 
-  @override
-  void dispose() {
-    subjectNameController.dispose();
-    professorNameController.dispose();
-    super.dispose();
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF1976D2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
-  // Fonction pour soumettre le formulaire
   Future<void> submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      // Récupération des données du formulaire
-      final String subjectName = subjectNameController.text.trim();
-      final String subjectId = subjectIdController.text.trim();
-      final String professorName = professorNameController.text.trim();
+    if (!_formKey.currentState!.validate()) return;
 
-      // Construction des données pour l'API
+    setState(() => _isSubmitting = true);
+
+    try {
       final Map<String, dynamic> data = {
         "classe": selectedClass,
         "filiere": selectedFiliere,
-        "nom_matiere": subjectName,
-        "id_matiere": subjectId,
-        "nom_prof": professorName,
+        "nom_matiere": subjectNameController.text.trim(),
+        "id_matiere": subjectIdController.text.trim(),
+        "nom_prof": professorNameController.text.trim(),
       };
 
-      try {
-        // Envoi des données via une requête POST
-        final response = await http.post(
-          Uri.parse("${Config.sander}/addSubject"), // URL de l'API
-          headers: {"Content-Type": "application/json"},
-          body: json.encode(data),
-        );
-        print(data);
+      final response = await http.post(
+        Uri.parse("${Config.sander}/addSubject"),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(data),
+      );
 
-        if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Matière ajoutée avec succès !")),
-          );
-          // Réinitialiser le formulaire
-          _formKey.currentState!.reset();
-          setState(() {
-            selectedClass = null;
-            selectedFiliere = null;
-          });
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text("Erreur lors de l'ajout : ${response.body}")),
-          );
-        }
-      } catch (e) {
-        print("Erreur lors de l'envoi : $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Échec de la connexion au serveur.")),
-        );
+      if (response.statusCode == 200) {
+        _showSnackBar("Matière ajoutée avec succès !", isError: false);
+        _formKey.currentState!.reset();
+        setState(() {
+          selectedClass = null;
+          selectedFiliere = null;
+          subjectNameController.clear();
+          subjectIdController.clear();
+          professorNameController.clear();
+        });
+      } else {
+        throw Exception("Erreur lors de l'ajout : ${response.body}");
       }
+    } catch (e) {
+      _showSnackBar("Erreur lors de l'ajout de la matière: $e");
+    } finally {
+      setState(() => _isSubmitting = false);
     }
+  }
+
+  Widget _buildFormField({
+    required String label,
+    required TextEditingController controller,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey.shade700),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF1976D2)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+          errorStyle: const TextStyle(color: Colors.red),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey.shade700),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          errorStyle: const TextStyle(color: Colors.red),
+        ),
+        items: items.map((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        validator: validator,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ajouter une Matière"),
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
+        title: const Text(
+          "Ajouter une Matière",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Dropdown pour la classe
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: "Classe",
-                    border: OutlineInputBorder(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Informations de la matière",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1976D2),
+                    ),
                   ),
-                  value: selectedClass,
-                  items: classes.map((String className) {
-                    return DropdownMenuItem<String>(
-                      value: className,
-                      child: Text(className),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedClass = value;
-                    });
-                  },
-                  validator: (value) =>
-                      value == null ? "Veuillez choisir une classe" : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Dropdown pour la filière
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: "Filière",
-                    //border: OutlineInputBorder(),
+                  const SizedBox(height: 24),
+                  _buildDropdown(
+                    label: "Classe",
+                    value: selectedClass,
+                    items: classes,
+                    onChanged: (value) => setState(() => selectedClass = value),
+                    validator: (value) => value == null ? "Veuillez choisir une classe" : null,
                   ),
-                  value: selectedFiliere,
-                  items: filieres.map((String filiereName) {
-                    return DropdownMenuItem<String>(
-                      value: filiereName,
-                      child: Text(filiereName),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedFiliere = value;
-                    });
-                  },
-                  validator: (value) =>
-                      value == null ? "Veuillez choisir une filière" : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Champ pour le nom de la matière
-                TextFormField(
-                  controller: subjectNameController,
-                  decoration: const InputDecoration(
-                    labelText: "Nom de la matière",
-                    border: OutlineInputBorder(),
+                  _buildDropdown(
+                    label: "Filière",
+                    value: selectedFiliere,
+                    items: filieres,
+                    onChanged: (value) => setState(() => selectedFiliere = value),
+                    validator: (value) => value == null ? "Veuillez choisir une filière" : null,
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? "Veuillez entrer un nom de matière"
-                      : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Champ pour l id de la matiere
-                TextFormField(
-                  controller: subjectIdController,
-                  decoration: const InputDecoration(
-                    labelText: "ID de la matiere",
-                    border: OutlineInputBorder(),
+                  _buildFormField(
+                    label: "Nom de la matière",
+                    controller: subjectNameController,
+                    validator: (value) => value?.isEmpty ?? true
+                        ? "Veuillez entrer le nom de la matière"
+                        : null,
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? "Veuillez entrer l'ID de la matiere"
-                      : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Champ pour le nom du professeur
-                TextFormField(
-                  controller: professorNameController,
-                  decoration: const InputDecoration(
-                    labelText: "Nom du professeur",
-                    border: OutlineInputBorder(),
+                  _buildFormField(
+                    label: "ID de la matière",
+                    controller: subjectIdController,
+                    validator: (value) => value?.isEmpty ?? true
+                        ? "Veuillez entrer l'ID de la matière"
+                        : null,
                   ),
-                  validator: (value) => value == null || value.isEmpty
-                      ? "Veuillez entrer un nom de professeur"
-                      : null,
-                ),
-                const SizedBox(height: 24),
-
-                // Bouton de soumission
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: submitForm,
-                    child: const Text("Ajouter"),
+                  _buildFormField(
+                    label: "Nom du professeur",
+                    controller: professorNameController,
+                    validator: (value) => value?.isEmpty ?? true
+                        ? "Veuillez entrer le nom du professeur"
+                        : null,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1976D2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Ajouter la matière',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    subjectNameController.dispose();
+    subjectIdController.dispose();
+    professorNameController.dispose();
+    super.dispose();
   }
 }

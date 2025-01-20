@@ -40,12 +40,12 @@ class MyApp extends StatelessWidget {
       home:
           const AuthChecker(), // Vérifier l'état de la connexion avant de montrer une page
       routes: {
-        '/auth': (context) => AuthPage(),
+        '/auth': (context) => const AuthPage(),
         '/home': (context) => HomeShareFile(),
-        '/opportunity': (context) => OpportunityPage(),
+        '/opportunity': (context) => const OpportunityPage(),
         '/project_management': (context) => const ProjectManagementPage(),
-        '/help': (context) => ForumPage(),
-        '/profil': (context) => ProfilePage(),
+        '/help': (context) => const ForumPage(),
+        '/profil': (context) => const ProfilePage(),
         '/assistance': (context) => AssistancePage(),
         '/my_demands': (context) => AssistanceRequestsPage(),
         '/suivi': (context) => MyAssistanceRequestsPage(),
@@ -78,7 +78,7 @@ class AuthChecker extends StatelessWidget {
         } else if (snapshot.hasData && snapshot.data != null) {
           return HomeShareFile(); // Si connecté, rediriger vers la page HomeShareFile
         } else {
-          return AuthPage(); // Si non connecté, rediriger vers la page de connexion
+          return const AuthPage(); // Si non connecté, rediriger vers la page de connexion
         }
       },
     );

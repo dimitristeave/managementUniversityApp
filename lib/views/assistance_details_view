@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:isibappmoodle/config/config';
-import 'package:isibappmoodle/reutilisable/app_drawer.dart';
-import 'package:isibappmoodle/config/config';
-
 
 class AssistanceDetailsPage extends StatefulWidget {
   final Map<String, dynamic> demande;
 
-  AssistanceDetailsPage({required this.demande});
+  const AssistanceDetailsPage({super.key, required this.demande});
 
   @override
   _AssistanceDetailsPageState createState() => _AssistanceDetailsPageState();
@@ -19,9 +15,227 @@ class AssistanceDetailsPage extends StatefulWidget {
 class _AssistanceDetailsPageState extends State<AssistanceDetailsPage> {
   bool _isUpdating = false;
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'en attente':
+        return Colors.orange;
+      case 'accepté':
+        return Colors.green;
+      case 'refusé':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'en attente':
+        return Icons.hourglass_empty;
+      case 'accepté':
+        return Icons.check_circle;
+      case 'refusé':
+        return Icons.cancel;
+      default:
+        return Icons.info;
+    }
+  }
+
+  Widget _buildInfoField(String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1976D2),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 12),
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF1976D2),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge() {
+    final status = widget.demande['status'];
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: _getStatusColor(status).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _getStatusColor(status).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _getStatusIcon(status),
+            size: 20,
+            color: _getStatusColor(status),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Statut: $status',
+            style: TextStyle(
+              color: _getStatusColor(status),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _isUpdating ? null : () => _updateStatus('refusé'),
+            icon: const Icon(Icons.close, color: Colors.white),
+            label: const Text(
+              'Refuser',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ).copyWith(
+              overlayColor: MaterialStateProperty.resolveWith<Color>(
+                (Set<MaterialState> states) {
+                  if (states.contains(MaterialState.pressed)) {
+                    return Colors.red.shade700;
+                  }
+                  return Colors.red;
+                },
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _isUpdating ? null : () => _updateStatus('accepté'),
+            icon: const Icon(Icons.check, color: Colors.white),
+            label: const Text(
+              'Valider',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ).copyWith(
+              overlayColor: MaterialStateProperty.resolveWith<Color>(
+                (Set<MaterialState> states) {
+                  if (states.contains(MaterialState.pressed)) {
+                    return Colors.green.shade700;
+                  }
+                  return Colors.green;
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showSnackBar(String message, bool isSuccess) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isSuccess ? Icons.check_circle : Icons.error,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isSuccess ? const Color(0xFF1976D2) : Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _isUpdating = true);
-    print({widget.demande['_id']});
+
     try {
       final response = await http.put(
         Uri.parse('${Config.sander}/assistance/update/${widget.demande['id']}'),
@@ -30,17 +244,19 @@ class _AssistanceDetailsPageState extends State<AssistanceDetailsPage> {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Statut mis à jour avec succès')),
+        _showSnackBar(
+          newStatus == 'accepté' 
+              ? 'Demande acceptée avec succès'
+              : 'Demande refusée avec succès',
+          true,
         );
-        Navigator.pop(context);
+        if (!mounted) return;
+        Navigator.pop(context, true);
       } else {
         throw Exception('Échec de la mise à jour');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la mise à jour')),
-      );
+      _showSnackBar('Erreur lors de la mise à jour: $e', false);
     } finally {
       setState(() => _isUpdating = false);
     }
@@ -50,80 +266,102 @@ class _AssistanceDetailsPageState extends State<AssistanceDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Détails de la demande'),
+        backgroundColor: const Color(0xFF1976D2),
+        elevation: 0,
+        title: const Text(
+          'Détails de la demande',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
-      body: _isUpdating
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    initialValue: widget.demande['matiere'],
-                    decoration: InputDecoration(labelText: 'Matière'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: widget.demande['demandeurEmail'],
-                    decoration: InputDecoration(labelText: 'Email du demandeur'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: widget.demande['demandeurClasse'],
-                    decoration: InputDecoration(labelText: 'Classe'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: widget.demande['demandeurFiliere'],
-                    decoration: InputDecoration(labelText: 'Filière'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: widget.demande['date'],
-                    decoration: InputDecoration(labelText: 'Date'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: '${widget.demande['heures']} heures',
-                    decoration: InputDecoration(labelText: 'Durée'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: widget.demande['lieu'],
-                    decoration: InputDecoration(labelText: 'Lieu'),
-                    readOnly: true,
-                  ),
-                  TextFormField(
-                    initialValue: widget.demande['description'],
-                    decoration: InputDecoration(labelText: 'Description'),
-                    maxLines: 3,
-                    readOnly: true,
-                  ),
-                  SizedBox(height: 20),
-                  if (widget.demande['status'] == 'en attente')
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: _isUpdating
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                      strokeWidth: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Mise à jour en cours...',
+                      style: TextStyle(
+                        color: Colors.grey.shade800,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        ElevatedButton(
-                          onPressed: () => _updateStatus('refusé'),
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all(Colors.red),
-                          ),
-                          child: Text('Refuser'),
+                        const Icon(
+                          Icons.article_outlined,
+                          color: Color(0xFF1976D2),
+                          size: 28,
                         ),
-                        ElevatedButton(
-                          onPressed: () => _updateStatus('accepté'),
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all(Colors.green),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Informations de la demande",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1976D2),
                           ),
-                          child: Text('Valider'),
                         ),
                       ],
                     ),
-                ],
+                    _buildStatusBadge(),
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            _buildInfoField('Matière', widget.demande['matiere']),
+                            _buildInfoField('Email', widget.demande['demandeurEmail']),
+                            _buildInfoField('Classe', widget.demande['demandeurClasse']),
+                            _buildInfoField('Filière', widget.demande['demandeurFiliere']),
+                            _buildInfoField('Date', widget.demande['date']),
+                            _buildInfoField('Durée', '${widget.demande['heures']} heures'),
+                            _buildInfoField('Lieu', widget.demande['lieu']),
+                            _buildInfoField('Description', widget.demande['description']),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (widget.demande['status'] == 'en attente') ...[
+                      const SizedBox(height: 32),
+                      _buildActionButtons(),
+                    ],
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }

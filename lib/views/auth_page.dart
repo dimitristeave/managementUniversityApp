@@ -15,209 +15,301 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLogin =
-      true; // Détermine si on est sur la page de connexion ou d'inscription
-  String _message = "";
-  String? _selectedClasse; // Section sélectionnée par l'utilisateur
+  bool _isLogin = true;
+  bool _isLoading = false;
+  String? _selectedClasse;
   String? _selectedFiliere;
 
-  // Liste des sections disponibles
   final List<String> _classe = [
-    "BAC 1",
-    "BAC 2",
-    "BAC 3",
-    "Bloc C",
-    "Master 1",
-    "Master 2"
+    "BAC 1", "BAC 2", "BAC 3", "Bloc C", "Master 1", "Master 2"
   ];
 
   final List<String> _filiere = [
-    "Commun",
-    "Info",
-    "Electronique",
-    "Mécanique",
-    "Physique Nucléaire",
-    "Chimie",
-    "Electricité"
+    "Commun", "Info", "Electronique", "Mécanique", 
+    "Physique Nucléaire", "Chimie", "Electricité"
   ];
 
-  // Fonction pour se connecter
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error : Icons.check_circle,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red : const Color(0xFF1976D2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   Future<void> _signIn() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showSnackBar('Veuillez remplir tous les champs');
+      return;
+    }
+
+    setState(() => _isLoading = true);
     try {
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
-      setState(() {
-        _message = 'Connexion réussie!';
-      });
-
-      // Rediriger vers la page d'accueil
+      if (!mounted) return;
+      _showSnackBar('Connexion réussie!', isError: false);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeShareFile()),
       );
     } catch (e) {
-      setState(() {
-        _message = 'Erreur de connexion: $e';
-      });
+      _showSnackBar('Erreur de connexion: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  // Fonction pour s'inscrire via l'API backend
   Future<void> _signUp() async {
-    final String email = _emailController.text;
-    final String password = _passwordController.text;
-
-    // Vérification des champs
-    if (email.isEmpty ||
-        password.isEmpty ||
+    if (_emailController.text.isEmpty || 
+        _passwordController.text.isEmpty ||
         _selectedClasse == null ||
         _selectedFiliere == null) {
-      setState(() {
-        _message =
-            "L'email, le mot de passe et la section sont requis pour l'inscription.";
-      });
+      _showSnackBar('Veuillez remplir tous les champs');
       return;
     }
 
+    setState(() => _isLoading = true);
     try {
       final response = await http.post(
-        Uri.parse(
-            "${Config.sander}/signup"), // Remplace par l'URL de ton backend
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        Uri.parse("${Config.sander}/signup"),
+        headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'email': email,
-          'password': password,
+          'email': _emailController.text,
+          'password': _passwordController.text,
           'classe': _selectedClasse,
           'filiere': _selectedFiliere,
         }),
       );
 
       if (response.statusCode == 201) {
-        // Une fois l'utilisateur créé, on tente de se connecter
         await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
+          email: _emailController.text,
+          password: _passwordController.text,
         );
 
-        setState(() {
-          _message = 'Inscription et connexion réussies!';
-        });
-
-        // Rediriger vers la page d'accueil après inscription et connexion
+        if (!mounted) return;
+        _showSnackBar('Inscription réussie!', isError: false);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeShareFile()),
         );
       } else {
-        setState(() {
-          _message = 'Erreur d\'inscription: ${response.body}';
-        });
+        throw Exception("Erreur d'inscription : ${response.body}");
       }
     } catch (e) {
-      setState(() {
-        _message = 'Erreur de communication avec le serveur: $e';
-      });
+      _showSnackBar('Erreur: $e');
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
+
+  Widget _buildFormField({
+    required String label,
+    required TextEditingController controller,
+    bool isPassword = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(
+            isPassword ? Icons.lock_outline : Icons.email_outlined,
+            color: Colors.grey.shade600,
+          ),
+          labelStyle: TextStyle(color: Colors.grey.shade700),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF1976D2)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: const Icon(Icons.school_outlined, color: Color(0xFF1976D2)),
+          labelStyle: TextStyle(color: Colors.grey.shade700),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        items: items.map((item) => DropdownMenuItem(
+          value: item,
+          child: Text(item),
+        )).toList(),
+        onChanged: onChanged,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isLogin ? 'Se connecter' : 'S\'inscrire'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                hintText: 'Entrez votre email',
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(
-                labelText: 'Mot de passe',
-                hintText: 'Entrez votre mot de passe',
-              ),
-              obscureText: true,
-            ),
-            if (!_isLogin) ...[
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedClasse,
-                decoration: const InputDecoration(
-                  labelText: 'Classe',
-                  border: OutlineInputBorder(),
-                ),
-                items: _classe
-                    .map((section) => DropdownMenuItem<String>(
-                          value: section,
-                          child: Text(section),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedClasse = value;
-                  });
-                },
-                menuMaxHeight:
-                    200, // Limite la hauteur de la liste déroulante à 200 pixels
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedFiliere,
-                decoration: const InputDecoration(
-                  labelText: 'Filiere',
-                  border: OutlineInputBorder(),
-                ),
-                items: _filiere
-                    .map((section) => DropdownMenuItem<String>(
-                          value: section,
-                          child: Text(section),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedFiliere = value;
-                  });
-                },
-                menuMaxHeight:
-                    200, // Limite la hauteur de la liste déroulante à 200 pixels
-              ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF1976D2).withOpacity(0.1),
+              Colors.white,
             ],
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _isLogin ? _signIn : _signUp,
-              child: Text(_isLogin ? 'Se connecter' : 'S\'inscrire'),
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+                // Logo ou image ici si nécessaire
+                Icon(
+                  Icons.school,
+                  size: 64,
+                  color: const Color(0xFF1976D2),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  _isLogin ? 'Connexion' : 'Inscription',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1976D2),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                _buildFormField(
+                  label: 'Email',
+                  controller: _emailController,
+                ),
+                _buildFormField(
+                  label: 'Mot de passe',
+                  controller: _passwordController,
+                  isPassword: true,
+                ),
+                if (!_isLogin) ...[
+                  _buildDropdown(
+                    label: 'Classe',
+                    value: _selectedClasse,
+                    items: _classe,
+                    onChanged: (value) => setState(() => _selectedClasse = value),
+                  ),
+                  _buildDropdown(
+                    label: 'Filière',
+                    value: _selectedFiliere,
+                    items: _filiere,
+                    onChanged: (value) => setState(() => _selectedFiliere = value),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : (_isLogin ? _signIn : _signUp),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            _isLogin ? 'Se connecter' : 'S\'inscrire',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => setState(() => _isLogin = !_isLogin),
+                  child: Text(
+                    _isLogin
+                        ? 'Pas encore de compte ? Inscrivez-vous'
+                        : 'Vous avez un compte ? Connectez-vous',
+                    style: const TextStyle(color: Color(0xFF1976D2)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isLogin = !_isLogin;
-                });
-              },
-              child: Text(_isLogin
-                  ? 'Pas encore de compte ? Inscrivez-vous'
-                  : 'Vous avez un compte ? Connectez-vous'),
-            ),
-            const SizedBox(height: 16),
-            Text(_message),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

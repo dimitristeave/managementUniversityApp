@@ -290,7 +290,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                                           : null,
                                       radius: 20,
                                       child: answer['userPhotoURL'] == null
-                                          ? Icon(Icons.person)
+                                          ? const Icon(Icons.person)
                                           : null,
                                     ),
                                     const SizedBox(width: 12),

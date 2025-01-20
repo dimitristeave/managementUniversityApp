@@ -175,7 +175,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     final bool isTaskCompleted = _taskData?['status'] == 'completed';
 
     return Scaffold(
-      drawer: AppDrawer(),
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: Text(_taskData?['name'] ?? 'Détails de la tâche'),
       ),
@@ -297,7 +297,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             ),
             const SizedBox(height: 16),
             _comments.isEmpty
-                ? Text(
+                ? const Text(
                     'Aucun commentaire disponible pour cette tâche.',
                     style: TextStyle(color: Colors.grey),
                   )
