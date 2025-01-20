@@ -42,7 +42,7 @@ class AppDrawer extends StatelessWidget {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Menu Principal',
+                    'Moodle Isib',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
